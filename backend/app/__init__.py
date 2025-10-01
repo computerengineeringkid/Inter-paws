@@ -5,6 +5,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from backend.config import get_config
+from backend.app.middleware import register_audit_middleware
 from backend.extensions import bcrypt, db, jwt, migrate
 
 
@@ -17,6 +18,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_extensions(app)
     register_blueprints(app)
+    register_audit_middleware(app)
 
     CORS(app)
     return app
