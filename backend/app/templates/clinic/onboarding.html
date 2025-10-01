@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clinic Onboarding Wizard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="h-full font-sans antialiased text-slate-900">
+    <div class="min-h-full py-12">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div class="mb-8 text-center">
+          <h1 class="text-3xl font-bold text-slate-900">Welcome to Inter-Paws</h1>
+          <p class="mt-2 text-lg text-slate-600">
+            Complete the onboarding wizard to configure your clinic profile and scheduling rules.
+          </p>
+        </div>
+
+        <div class="mb-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <h2 class="text-lg font-semibold text-slate-800">Progress</h2>
+          <ol
+            id="wizardProgress"
+            class="mt-4 grid gap-3 text-sm font-medium text-slate-500 sm:grid-cols-5"
+          >
+            <li class="flex items-center gap-2 rounded-lg border border-slate-200 p-3" data-step-index="0">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs">1</span>
+              Clinic Details
+            </li>
+            <li class="flex items-center gap-2 rounded-lg border border-slate-200 p-3" data-step-index="1">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs">2</span>
+              Doctors
+            </li>
+            <li class="flex items-center gap-2 rounded-lg border border-slate-200 p-3" data-step-index="2">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs">3</span>
+              Rooms
+            </li>
+            <li class="flex items-center gap-2 rounded-lg border border-slate-200 p-3" data-step-index="3">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs">4</span>
+              Equipment
+            </li>
+            <li class="flex items-center gap-2 rounded-lg border border-slate-200 p-3" data-step-index="4">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs">5</span>
+              Operating Hours
+            </li>
+          </ol>
+        </div>
+
+        <form
+          id="onboardingForm"
+          class="space-y-8 rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200"
+        >
+          <div class="rounded-xl border border-slate-200 p-6" data-step="0">
+            <div class="mb-6 flex flex-col gap-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+              <p>
+                Provide your access token so we can securely submit the onboarding details. Tokens can
+                be generated from the admin login endpoint.
+              </p>
+              <label class="flex flex-col gap-1">
+                <span class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  >JWT Access Token</span
+                >
+                <input
+                  id="jwtToken"
+                  type="text"
+                  placeholder="Paste your Bearer token"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                  autocomplete="off"
+                />
+              </label>
+            </div>
+
+            <h2 class="text-xl font-semibold text-slate-900">Clinic Details</h2>
+            <p class="mt-1 text-sm text-slate-500">Let us know the basics about your clinic.</p>
+
+            <div class="mt-6 grid gap-4 sm:grid-cols-2">
+              <label class="flex flex-col gap-1">
+                <span class="text-sm font-medium text-slate-600">Clinic Name<span class="text-rose-500">*</span></span>
+                <input
+                  name="clinic_name"
+                  type="text"
+                  required
+                  class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                  placeholder="Happy Paws Veterinary"
+                />
+              </label>
+              <label class="flex flex-col gap-1">
+                <span class="text-sm font-medium text-slate-600">Clinic Email</span>
+                <input
+                  name="clinic_email"
+                  type="email"
+                  class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                  placeholder="contact@happypaws.com"
+                />
+              </label>
+              <label class="flex flex-col gap-1">
+                <span class="text-sm font-medium text-slate-600">Phone Number</span>
+                <input
+                  name="clinic_phone"
+                  type="tel"
+                  class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                  placeholder="(555) 123-4567"
+                />
+              </label>
+              <label class="flex flex-col gap-1 sm:col-span-2">
+                <span class="text-sm font-medium text-slate-600">Address</span>
+                <input
+                  name="clinic_address"
+                  type="text"
+                  class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                  placeholder="123 Main Street, Springfield"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="hidden rounded-xl border border-slate-200 p-6" data-step="1">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-slate-900">Doctors</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                  Add the veterinarians and practitioners who will appear in your schedule.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="addDoctor"
+                class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 focus:outline-none focus:ring focus:ring-sky-200"
+              >
+                <span class="text-lg leading-none">＋</span>
+                Add Doctor
+              </button>
+            </div>
+
+            <div id="doctorsList" class="mt-6 space-y-4"></div>
+          </div>
+
+          <div class="hidden rounded-xl border border-slate-200 p-6" data-step="2">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-slate-900">Rooms</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                  List the rooms where appointments can take place along with capacity or notes.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="addRoom"
+                class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 focus:outline-none focus:ring focus:ring-sky-200"
+              >
+                <span class="text-lg leading-none">＋</span>
+                Add Room
+              </button>
+            </div>
+
+            <div id="roomsList" class="mt-6 space-y-4"></div>
+          </div>
+
+          <div class="hidden rounded-xl border border-slate-200 p-6" data-step="3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-slate-900">Equipment</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                  Track specialized equipment so we can associate it with the right rooms.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="addEquipment"
+                class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 focus:outline-none focus:ring focus:ring-sky-200"
+              >
+                <span class="text-lg leading-none">＋</span>
+                Add Equipment
+              </button>
+            </div>
+
+            <div id="equipmentList" class="mt-6 space-y-4"></div>
+          </div>
+
+          <div class="hidden rounded-xl border border-slate-200 p-6" data-step="4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-slate-900">Operating Hours</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                  Define when your clinic is open for appointments.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="addSchedule"
+                class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 focus:outline-none focus:ring focus:ring-sky-200"
+              >
+                <span class="text-lg leading-none">＋</span>
+                Add Day
+              </button>
+            </div>
+
+            <div id="scheduleList" class="mt-6 space-y-4"></div>
+
+            <div class="mt-6 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+              <p>
+                When you submit, we will securely send the onboarding details to the backend API. Make
+                sure all steps are complete before finalizing.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div id="formFeedback" class="text-sm font-medium"></div>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                data-nav="prev"
+                class="hidden rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring focus:ring-slate-200"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                data-nav="next"
+                class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 focus:outline-none focus:ring focus:ring-sky-200"
+              >
+                Next
+              </button>
+              <button
+                type="submit"
+                class="hidden rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-500 focus:outline-none focus:ring focus:ring-emerald-200"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <template id="doctorTemplate">
+      <div
+        class="rounded-xl border border-slate-200 p-4" data-doctor-row>
+        <div class="flex flex-col gap-4 sm:grid sm:grid-cols-5 sm:items-end sm:gap-4">
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Display Name<span class="text-rose-500">*</span></span>
+            <input
+              name="doctor_name"
+              type="text"
+              required
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              placeholder="Dr. Jane Doe"
+            />
+          </label>
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Specialty</span>
+            <input
+              name="doctor_specialty"
+              type="text"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              placeholder="Surgery, Dentistry"
+            />
+          </label>
+          <div class="flex items-center justify-between gap-3 sm:col-span-1">
+            <label class="flex flex-col gap-1 w-full">
+              <span class="text-sm font-medium text-slate-600">License #</span>
+              <input
+                name="doctor_license"
+                type="text"
+                class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                placeholder="AB12345"
+              />
+            </label>
+            <button
+              type="button"
+              class="mt-6 inline-flex items-center justify-center self-start rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-50"
+              data-remove-row
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+        <label class="mt-4 flex flex-col gap-1">
+          <span class="text-sm font-medium text-slate-600">Biography</span>
+          <textarea
+            name="doctor_bio"
+            rows="3"
+            class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            placeholder="Share experience, certifications, or languages."
+          ></textarea>
+        </label>
+      </div>
+    </template>
+
+    <template id="roomTemplate">
+      <div class="rounded-xl border border-slate-200 p-4" data-room-row>
+        <div class="flex flex-col gap-4 sm:grid sm:grid-cols-5 sm:items-end sm:gap-4">
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Room Name<span class="text-rose-500">*</span></span>
+            <input
+              name="room_name"
+              type="text"
+              required
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              placeholder="Exam Room 1"
+            />
+          </label>
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Room Type</span>
+            <input
+              name="room_type"
+              type="text"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              placeholder="Exam, Surgery, Boarding"
+            />
+          </label>
+          <label class="sm:col-span-1 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Capacity</span>
+            <input
+              name="room_capacity"
+              type="number"
+              min="1"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              placeholder="1"
+            />
+          </label>
+        </div>
+        <label class="mt-4 flex flex-col gap-1">
+          <span class="text-sm font-medium text-slate-600">Notes</span>
+          <textarea
+            name="room_notes"
+            rows="3"
+            class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            placeholder="Nearby equipment, storage details, etc."
+          ></textarea>
+        </label>
+        <div class="mt-4 flex justify-end">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-50"
+            data-remove-row
+          >
+            Remove Room
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <template id="equipmentTemplate">
+      <div class="rounded-xl border border-slate-200 p-4" data-equipment-row>
+        <div class="flex flex-col gap-4 sm:grid sm:grid-cols-4 sm:items-end sm:gap-4">
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Equipment Name<span class="text-rose-500">*</span></span>
+            <input
+              name="equipment_name"
+              type="text"
+              required
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              placeholder="Digital X-Ray"
+            />
+          </label>
+          <label class="sm:col-span-1 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Located In</span>
+            <input
+              name="equipment_room"
+              type="text"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              placeholder="Exam Room 1"
+            />
+          </label>
+          <div class="flex items-center justify-between gap-3 sm:col-span-1">
+            <label class="flex flex-col gap-1 w-full">
+              <span class="text-sm font-medium text-slate-600">Notes</span>
+              <input
+                name="equipment_notes"
+                type="text"
+                class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                placeholder="Calibration schedule"
+              />
+            </label>
+            <button
+              type="button"
+              class="mt-6 inline-flex items-center justify-center self-start rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-50"
+              data-remove-row
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="scheduleTemplate">
+      <div class="rounded-xl border border-slate-200 p-4" data-schedule-row>
+        <div class="flex flex-col gap-4 sm:grid sm:grid-cols-5 sm:items-end sm:gap-4">
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Day of Week<span class="text-rose-500">*</span></span>
+            <select
+              name="schedule_day"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            >
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Opens</span>
+            <input
+              name="schedule_start"
+              type="time"
+              required
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              value="08:00"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Closes</span>
+            <input
+              name="schedule_end"
+              type="time"
+              required
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              value="17:00"
+            />
+          </label>
+          <div class="flex items-center justify-between gap-3 sm:col-span-1">
+            <label class="flex flex-col gap-1 w-full">
+              <span class="text-sm font-medium text-slate-600">Notes</span>
+              <input
+                name="schedule_notes"
+                type="text"
+                class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                placeholder="Walk-ins welcome"
+              />
+            </label>
+            <button
+              type="button"
+              class="mt-6 inline-flex items-center justify-center self-start rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-50"
+              data-remove-row
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script>
+      const form = document.getElementById("onboardingForm");
+      const steps = Array.from(form.querySelectorAll('[data-step]'));
+      const progressItems = Array.from(document.querySelectorAll('#wizardProgress [data-step-index]'));
+      const prevBtn = form.querySelector('[data-nav="prev"]');
+      const nextBtn = form.querySelector('[data-nav="next"]');
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const feedback = document.getElementById('formFeedback');
+      let currentStep = 0;
+
+      const renderProgress = () => {
+        progressItems.forEach((item, index) => {
+          if (index === currentStep) {
+            item.classList.remove('border-slate-200', 'text-slate-500');
+            item.classList.add('border-sky-400', 'bg-sky-50', 'text-sky-700');
+          } else if (index < currentStep) {
+            item.classList.remove('border-slate-200', 'text-slate-500');
+            item.classList.add('border-emerald-400', 'bg-emerald-50', 'text-emerald-700');
+          } else {
+            item.classList.remove('border-emerald-400', 'bg-emerald-50', 'text-emerald-700', 'border-sky-400', 'bg-sky-50', 'text-sky-700');
+            item.classList.add('border-slate-200', 'text-slate-500');
+          }
+        });
+      };
+
+      const showStep = (index) => {
+        currentStep = Math.max(0, Math.min(index, steps.length - 1));
+        steps.forEach((step, idx) => {
+          step.classList.toggle('hidden', idx !== currentStep);
+        });
+        prevBtn.classList.toggle('hidden', currentStep === 0);
+        nextBtn.classList.toggle('hidden', currentStep === steps.length - 1);
+        submitBtn.classList.toggle('hidden', currentStep !== steps.length - 1);
+        renderProgress();
+        feedback.textContent = '';
+      };
+
+      prevBtn.addEventListener('click', () => showStep(currentStep - 1));
+      nextBtn.addEventListener('click', () => showStep(currentStep + 1));
+
+      const cloneTemplate = (templateId) => {
+        const template = document.getElementById(templateId);
+        return template.content.firstElementChild.cloneNode(true);
+      };
+
+      const initDynamicList = (containerId, templateId) => {
+        const container = document.getElementById(containerId);
+        const addButtonId = {
+          doctorsList: 'addDoctor',
+          roomsList: 'addRoom',
+          equipmentList: 'addEquipment',
+          scheduleList: 'addSchedule',
+        }[containerId];
+        const addButton = document.getElementById(addButtonId);
+
+        const addRow = () => {
+          const row = cloneTemplate(templateId);
+          row.querySelectorAll('[data-remove-row]').forEach((btn) => {
+            btn.addEventListener('click', () => row.remove());
+          });
+          container.appendChild(row);
+        };
+
+        addButton.addEventListener('click', addRow);
+        addRow();
+      };
+
+      initDynamicList('doctorsList', 'doctorTemplate');
+      initDynamicList('roomsList', 'roomTemplate');
+      initDynamicList('equipmentList', 'equipmentTemplate');
+      initDynamicList('scheduleList', 'scheduleTemplate');
+
+      const extractValue = (input) => input?.value?.trim();
+
+      const collectDoctors = () =>
+        Array.from(document.querySelectorAll('[data-doctor-row]')).map((row) => ({
+          display_name: extractValue(row.querySelector('input[name="doctor_name"]')),
+          specialty: extractValue(row.querySelector('input[name="doctor_specialty"]')),
+          license_number: extractValue(row.querySelector('input[name="doctor_license"]')),
+          biography: extractValue(row.querySelector('textarea[name="doctor_bio"]')),
+        })).filter((doctor) => doctor.display_name);
+
+      const collectRooms = () =>
+        Array.from(document.querySelectorAll('[data-room-row]')).map((row) => ({
+          name: extractValue(row.querySelector('input[name="room_name"]')),
+          room_type: extractValue(row.querySelector('input[name="room_type"]')),
+          capacity: extractValue(row.querySelector('input[name="room_capacity"]')),
+          notes: extractValue(row.querySelector('textarea[name="room_notes"]')),
+        })).filter((room) => room.name);
+
+      const collectEquipment = () =>
+        Array.from(document.querySelectorAll('[data-equipment-row]')).map((row) => ({
+          name: extractValue(row.querySelector('input[name="equipment_name"]')),
+          room: extractValue(row.querySelector('input[name="equipment_room"]')),
+          notes: extractValue(row.querySelector('input[name="equipment_notes"]')),
+        })).filter((equipment) => equipment.name);
+
+      const collectSchedule = () =>
+        Array.from(document.querySelectorAll('[data-schedule-row]')).map((row) => ({
+          day: extractValue(row.querySelector('select[name="schedule_day"]')),
+          start: extractValue(row.querySelector('input[name="schedule_start"]')),
+          end: extractValue(row.querySelector('input[name="schedule_end"]')),
+          notes: extractValue(row.querySelector('input[name="schedule_notes"]')),
+        })).filter((rule) => rule.day && rule.start && rule.end);
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const token = extractValue(document.getElementById('jwtToken'));
+        if (!token) {
+          feedback.textContent = 'Please provide a valid JWT access token to continue.';
+          feedback.className = 'text-sm font-semibold text-rose-600';
+          showStep(0);
+          return;
+        }
+
+        const formData = new FormData(form);
+        const payload = {
+          clinic: {
+            name: formData.get('clinic_name')?.toString().trim(),
+            email: formData.get('clinic_email')?.toString().trim() || null,
+            phone_number: formData.get('clinic_phone')?.toString().trim() || null,
+            address: formData.get('clinic_address')?.toString().trim() || null,
+          },
+          doctors: collectDoctors(),
+          rooms: collectRooms(),
+          equipment: collectEquipment(),
+          schedule_rules: {
+            operating_hours: collectSchedule(),
+          },
+        };
+
+        if (!payload.clinic.name) {
+          feedback.textContent = 'Clinic name is required.';
+          feedback.className = 'text-sm font-semibold text-rose-600';
+          showStep(0);
+          return;
+        }
+
+        nextBtn.disabled = true;
+        prevBtn.disabled = true;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        feedback.textContent = '';
+
+        try {
+          const response = await fetch('/api/clinic/onboarding', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(data.message || 'Unable to complete onboarding.');
+          }
+
+          feedback.textContent = data.message || 'Onboarding completed successfully!';
+          feedback.className = 'text-sm font-semibold text-emerald-600';
+        } catch (error) {
+          feedback.textContent = error.message;
+          feedback.className = 'text-sm font-semibold text-rose-600';
+        } finally {
+          nextBtn.disabled = false;
+          prevBtn.disabled = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+        }
+      });
+
+      showStep(0);
+    </script>
+  </body>
+</html>
