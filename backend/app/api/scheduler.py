@@ -12,7 +12,16 @@ from flask_jwt_extended import (
     verify_jwt_in_request,
 )
 
-from backend.app.models import Appointment, FeedbackEvent, User
+from backend.app.models import (
+    Appointment,
+    Clinic,
+    Constraint,
+    Doctor,
+    FeedbackEvent,
+    Pet,
+    Room,
+    User,
+)
 from backend.app.services.scheduler_service import find_candidate_slots_for_request
 from backend.extensions import db
 
@@ -26,20 +35,22 @@ def find_slots() -> tuple[object, HTTPStatus]:
     payload = request.get_json(silent=True) or {}
     clinic_id = payload.get("clinic_id")
 
-    if clinic_id is None:
+    authenticated_user: User | None = None
+
+    try:
+        verify_jwt_in_request(optional=True)
+    except Exception:  # pragma: no cover - optional JWT
+        authenticated_user = None
+    else:
+        identity = get_jwt_identity()
         try:
-            verify_jwt_in_request(optional=True)
-        except Exception:  # pragma: no cover - optional JWT
-            user = None
-        else:
-            identity = get_jwt_identity()
-            try:
-                user_id = int(identity) if identity is not None else None
-            except (TypeError, ValueError):  # pragma: no cover - defensive
-                user_id = None
-            user = User.query.get(user_id) if user_id is not None else None
-        if user is not None and user.clinic_id is not None:
-            clinic_id = user.clinic_id
+            user_id = int(identity) if identity is not None else None
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            user_id = None
+        authenticated_user = User.query.get(user_id) if user_id is not None else None
+
+    if clinic_id is None and authenticated_user is not None:
+        clinic_id = authenticated_user.clinic_id
 
     if clinic_id is None:
         return (
@@ -53,6 +64,16 @@ def find_slots() -> tuple[object, HTTPStatus]:
         return (
             jsonify(message="clinic_id must be an integer."),
             HTTPStatus.BAD_REQUEST,
+        )
+
+    if (
+        authenticated_user is not None
+        and authenticated_user.clinic_id is not None
+        and authenticated_user.clinic_id != clinic_id_int
+    ):
+        return (
+            jsonify(message="You are not authorized to access this clinic's schedule."),
+            HTTPStatus.FORBIDDEN,
         )
 
     try:
@@ -127,23 +148,98 @@ def book_appointment() -> tuple[object, HTTPStatus]:
     if current_user is None:
         return jsonify(message="Authenticated user could not be resolved."), HTTPStatus.UNAUTHORIZED
 
+    clinic = Clinic.query.get(clinic_id_int)
+    if clinic is None:
+        return jsonify(message="Clinic not found."), HTTPStatus.NOT_FOUND
+
+    if current_user.clinic_id is not None and current_user.clinic_id != clinic.id:
+        return (
+            jsonify(message="You are not authorized to book appointments for this clinic."),
+            HTTPStatus.FORBIDDEN,
+        )
+
     owner_id = payload.get("owner_id")
     try:
         owner_id_int = int(owner_id) if owner_id is not None else current_user.id
     except (TypeError, ValueError):
         return jsonify(message="owner_id must be an integer."), HTTPStatus.BAD_REQUEST
 
+    owner = User.query.filter_by(id=owner_id_int, clinic_id=clinic.id).first()
+    if owner is None:
+        return (
+            jsonify(message="owner_id must reference a user in this clinic."),
+            HTTPStatus.BAD_REQUEST,
+        )
+
     doctor_id = suggestion.get("doctor_id")
+    if doctor_id is not None:
+        try:
+            doctor_id_int = int(doctor_id)
+        except (TypeError, ValueError):
+            return jsonify(message="doctor_id must be an integer."), HTTPStatus.BAD_REQUEST
+        doctor = Doctor.query.filter_by(id=doctor_id_int, clinic_id=clinic.id).first()
+        if doctor is None:
+            return (
+                jsonify(message="doctor_id must reference a doctor in this clinic."),
+                HTTPStatus.BAD_REQUEST,
+            )
+    else:
+        doctor_id_int = None
+
     room_id = suggestion.get("room_id")
+    if room_id is not None:
+        try:
+            room_id_int = int(room_id)
+        except (TypeError, ValueError):
+            return jsonify(message="room_id must be an integer."), HTTPStatus.BAD_REQUEST
+        room = Room.query.filter_by(id=room_id_int, clinic_id=clinic.id).first()
+        if room is None:
+            return (
+                jsonify(message="room_id must reference a room in this clinic."),
+                HTTPStatus.BAD_REQUEST,
+            )
+    else:
+        room_id_int = None
+
     constraint_id = payload.get("constraint_id")
+    if constraint_id is not None:
+        try:
+            constraint_id_int = int(constraint_id)
+        except (TypeError, ValueError):
+            return jsonify(message="constraint_id must be an integer."), HTTPStatus.BAD_REQUEST
+        constraint = Constraint.query.filter_by(
+            id=constraint_id_int, clinic_id=clinic.id
+        ).first()
+        if constraint is None:
+            return (
+                jsonify(message="constraint_id must reference a constraint in this clinic."),
+                HTTPStatus.BAD_REQUEST,
+            )
+    else:
+        constraint_id_int = None
+
+    pet_id = payload.get("pet_id")
+    if pet_id is not None:
+        try:
+            pet_id_int = int(pet_id)
+        except (TypeError, ValueError):
+            return jsonify(message="pet_id must be an integer."), HTTPStatus.BAD_REQUEST
+        pet = Pet.query.filter_by(id=pet_id_int, clinic_id=clinic.id).first()
+        if pet is None:
+            return (
+                jsonify(message="pet_id must reference a pet in this clinic."),
+                HTTPStatus.BAD_REQUEST,
+            )
+    else:
+        pet_id_int = None
 
     appointment = Appointment(
         clinic_id=clinic_id_int,
-        pet_id=payload.get("pet_id"),
+        pet_id=pet_id_int,
         owner_id=owner_id_int,
-        doctor_id=doctor_id,
-        room_id=room_id,
-        constraint_id=constraint_id,
+        doctor_id=doctor_id_int,
+        room_id=room_id_int,
+        constraint_id=constraint_id_int,
         start_time=start_dt,
         end_time=end_dt,
         status="scheduled",
@@ -162,8 +258,8 @@ def book_appointment() -> tuple[object, HTTPStatus]:
         suggestion_slot_id=suggestion.get("slot_id"),
         suggestion_start_time=start_dt,
         suggestion_end_time=end_dt,
-        suggestion_doctor_id=doctor_id,
-        suggestion_room_id=room_id,
+        suggestion_doctor_id=doctor_id_int,
+        suggestion_room_id=room_id_int,
     )
 
     db.session.add(feedback_event)
