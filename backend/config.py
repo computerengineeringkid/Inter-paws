@@ -15,6 +15,9 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "dev-secret-key")
     BCRYPT_LOG_ROUNDS: int = int(os.getenv("BCRYPT_LOG_ROUNDS", "13"))
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
+    LLM_MAX_SUGGESTIONS: int = int(os.getenv("LLM_MAX_SUGGESTIONS", "5"))
 
     @classmethod
     def as_dict(cls) -> Dict[str, Any]:
