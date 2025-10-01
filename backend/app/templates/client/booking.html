@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inter-Paws Appointment Booking</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f6f8fb;
+        color: #1f2933;
+      }
+
+      .page {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 4rem;
+      }
+
+      h1 {
+        margin-bottom: 0.25rem;
+        font-size: clamp(1.8rem, 2.5vw, 2.5rem);
+      }
+
+      p.lead {
+        margin-top: 0;
+        color: #52606d;
+      }
+
+      form {
+        display: grid;
+        gap: 1.25rem;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+      }
+
+      fieldset {
+        border: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      @media (min-width: 720px) {
+        .grid.two-column {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      label {
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      input[type="text"],
+      input[type="datetime-local"],
+      input[type="number"],
+      select,
+      textarea {
+        padding: 0.65rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid #d2dae2;
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #3f83f8;
+        box-shadow: 0 0 0 4px rgba(63, 131, 248, 0.15);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 96px;
+      }
+
+      button {
+        justify-self: start;
+        background: linear-gradient(135deg, #3f83f8, #0052cc);
+        border: none;
+        color: #ffffff;
+        font-weight: 600;
+        padding: 0.85rem 1.75rem;
+        border-radius: 999px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        background: #94a3b8;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .results {
+        margin-top: 2.5rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .result-card {
+        border-radius: 12px;
+        border: 1px solid #d2dae2;
+        padding: 1.25rem;
+        background: #ffffff;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+      }
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 0.5rem;
+      }
+
+      .result-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+      }
+
+      .score {
+        font-size: 0.95rem;
+        color: #52606d;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .error {
+        padding: 1rem;
+        border-radius: 10px;
+        background: rgba(255, 67, 67, 0.1);
+        color: #b42318;
+        border: 1px solid rgba(255, 67, 67, 0.25);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Book an Appointment</h1>
+      <p class="lead">
+        Tell us about your pet's needs and we'll suggest the best available slots at
+        your clinic.
+      </p>
+
+      <form id="booking-form">
+        <fieldset class="grid two-column">
+          <label>
+            Clinic ID
+            <input
+              type="number"
+              name="clinic_id"
+              min="1"
+              step="1"
+              required
+              placeholder="e.g. 1"
+            />
+          </label>
+          <label>
+            Appointment Duration (minutes)
+            <input type="number" name="duration_minutes" min="15" step="15" value="30" />
+          </label>
+        </fieldset>
+
+        <fieldset class="grid two-column">
+          <label>
+            Preferred start
+            <input type="datetime-local" name="preferred_start" required />
+          </label>
+          <label>
+            Preferred end
+            <input type="datetime-local" name="preferred_end" required />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <label>
+            Reason for visit
+            <textarea name="reason_for_visit" placeholder="Tell us what's going on"></textarea>
+          </label>
+        </fieldset>
+
+        <fieldset class="grid two-column">
+          <label>
+            Urgency
+            <select name="urgency">
+              <option value="Routine" selected>Routine</option>
+              <option value="Urgent">Urgent</option>
+              <option value="Emergency">Emergency</option>
+            </select>
+          </label>
+          <label>
+            Granularity (minutes)
+            <input type="number" name="granularity_minutes" min="5" step="5" value="15" />
+          </label>
+        </fieldset>
+
+        <button type="submit">Find Appointment Options</button>
+        <div id="form-error" class="error hidden"></div>
+      </form>
+
+      <section class="results hidden" id="results-section">
+        <h2>Recommended appointment slots</h2>
+        <div id="results-container"></div>
+      </section>
+    </div>
+
+    <script>
+      const form = document.getElementById("booking-form");
+      const errorBox = document.getElementById("form-error");
+      const resultsSection = document.getElementById("results-section");
+      const resultsContainer = document.getElementById("results-container");
+
+      function formatDate(dateString) {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        return date.toLocaleString([], {
+          dateStyle: "medium",
+          timeStyle: "short",
+        });
+      }
+
+      function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+      }
+
+      function hideError() {
+        errorBox.textContent = "";
+        errorBox.classList.add("hidden");
+      }
+
+      function resetResults() {
+        resultsContainer.innerHTML = "";
+        resultsSection.classList.add("hidden");
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        hideError();
+        resetResults();
+
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData.entries());
+
+        const preferredStart = payload.preferred_start;
+        const preferredEnd = payload.preferred_end;
+
+        if (preferredStart >= preferredEnd) {
+          showError("Preferred end time must be after the start time.");
+          return;
+        }
+
+        payload.start = preferredStart;
+        payload.end = preferredEnd;
+        payload.duration_minutes = Number(payload.duration_minutes || 30);
+        payload.granularity_minutes = Number(payload.granularity_minutes || 15);
+        payload.clinic_id = Number(payload.clinic_id);
+
+        const submitButton = form.querySelector("button[type='submit']");
+        submitButton.disabled = true;
+        submitButton.textContent = "Finding slots...";
+
+        try {
+          const response = await fetch("/api/schedule/find-slots", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const body = await response.json();
+
+          if (!response.ok) {
+            throw new Error(body.message || "Unable to fetch appointment slots.");
+          }
+
+          const suggestions = body.suggestions || [];
+
+          if (suggestions.length === 0) {
+            showError("No appointment slots were available for the selected window.");
+            return;
+          }
+
+          resultsSection.classList.remove("hidden");
+          resultsContainer.innerHTML = suggestions
+            .map((slot) => {
+              const doctorLabel = slot.doctor_id ? `Dr. #${slot.doctor_id}` : "Any doctor";
+              const roomLabel = slot.room_id ? `Room #${slot.room_id}` : "Any room";
+              const scoreLabel = slot.score != null ? `${(slot.score * 100).toFixed(0)}% fit` : "Ranked option";
+              return `
+                <article class="result-card">
+                  <div class="result-header">
+                    <h3>Option ${slot.rank}</h3>
+                    <span class="score">${scoreLabel}</span>
+                  </div>
+                  <p><strong>${doctorLabel}</strong> in <strong>${roomLabel}</strong></p>
+                  <p>${formatDate(slot.start_time)} – ${formatDate(slot.end_time)}</p>
+                  <p>${slot.rationale || "Recommended based on clinic availability."}</p>
+                </article>
+              `;
+            })
+            .join("");
+        } catch (error) {
+          console.error(error);
+          showError(error.message || "An unexpected error occurred.");
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = "Find Appointment Options";
+        }
+      });
+    </script>
+  </body>
+</html>

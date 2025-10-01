@@ -35,5 +35,7 @@ def register_blueprints(app: Flask) -> None:
     """Register application blueprints."""
 
     from backend.app.api import api_bp
+    from backend.app.frontend import frontend_bp
 
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(frontend_bp)

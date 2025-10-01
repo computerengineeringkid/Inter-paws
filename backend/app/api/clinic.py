@@ -32,7 +32,11 @@ def _current_admin() -> User | None:
     user_id = get_jwt_identity()
     if not user_id:
         return None
-    user = User.query.get(user_id)
+    try:
+        user_pk = int(user_id)
+    except (TypeError, ValueError):  # pragma: no cover - defensive
+        return None
+    user = User.query.get(user_pk)
     if not user or (user.role or "").lower() != "admin":
         return None
     return user
