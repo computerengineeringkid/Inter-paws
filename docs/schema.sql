@@ -103,6 +103,13 @@ CREATE TABLE feedback_events (
     rating INTEGER,
     sentiment VARCHAR(50),
     comments TEXT,
+    suggestion_rank INTEGER,
+    suggestion_score DOUBLE PRECISION,
+    suggestion_slot_id INTEGER,
+    suggestion_start_time TIMESTAMP,
+    suggestion_end_time TIMESTAMP,
+    suggestion_doctor_id INTEGER,
+    suggestion_room_id INTEGER,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -116,5 +123,9 @@ CREATE TABLE audit_logs (
     action VARCHAR(100) NOT NULL,
     description TEXT,
     changes JSONB,
+    method VARCHAR(10) NOT NULL,
+    path VARCHAR(255) NOT NULL,
+    request_hash VARCHAR(128),
+    response_hash VARCHAR(128),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

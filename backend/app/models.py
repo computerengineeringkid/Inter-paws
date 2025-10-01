@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.extensions import db
@@ -230,6 +230,13 @@ class FeedbackEvent(db.Model, TimestampMixin):
     rating: Mapped[int | None] = mapped_column(Integer)
     sentiment: Mapped[str | None] = mapped_column(String(50))
     comments: Mapped[str | None] = mapped_column(Text)
+    suggestion_rank: Mapped[int | None] = mapped_column(Integer)
+    suggestion_score: Mapped[float | None] = mapped_column(Float)
+    suggestion_slot_id: Mapped[int | None] = mapped_column(Integer)
+    suggestion_start_time: Mapped[datetime | None] = mapped_column(DateTime)
+    suggestion_end_time: Mapped[datetime | None] = mapped_column(DateTime)
+    suggestion_doctor_id: Mapped[int | None] = mapped_column(Integer)
+    suggestion_room_id: Mapped[int | None] = mapped_column(Integer)
 
     appointment: Mapped[Appointment] = relationship(
         "Appointment", back_populates="feedback_events"
@@ -253,6 +260,10 @@ class AuditLog(db.Model):
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     changes: Mapped[dict | None] = mapped_column(db.JSON)
+    method: Mapped[str] = mapped_column(String(10), nullable=False)
+    path: Mapped[str] = mapped_column(String(255), nullable=False)
+    request_hash: Mapped[str | None] = mapped_column(String(128))
+    response_hash: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )
