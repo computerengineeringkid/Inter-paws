@@ -5,5 +5,5 @@ Flask-Migrate
 Flask-JWT-Extended
 flask-bcrypt
 python-dotenv
-psycopg2-binary
+# psycopg2-binary
 ortools
