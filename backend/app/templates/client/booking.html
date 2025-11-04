@@ -72,7 +72,6 @@
       input[type="email"],
       input[type="date"],
       input[type="datetime-local"],
-      input[type="number"],
       select,
       textarea {
         padding: 0.65rem 0.75rem;
@@ -171,6 +170,14 @@
         color: #047857;
         border: 1px solid rgba(16, 185, 129, 0.3);
       }
+
+      .disclaimer {
+        padding: 1rem;
+        border-radius: 10px;
+        background: rgba(255, 186, 0, 0.12);
+        color: #8a5300;
+        border: 1px solid rgba(255, 186, 0, 0.35);
+      }
     </style>
   </head>
   <body>
@@ -180,10 +187,15 @@
         Tell us about your pet's needs and we'll suggest the best available slots at
         your clinic.
       </p>
+      <div class="disclaimer">
+        If this is an emergency, please call us directly or come to the clinic
+        immediately. Do not use this form for urgent medical needs.
+      </div>
 
       <form id="booking-form">
         <input type="hidden" name="clinic_id" value="1" />
         <input type="hidden" name="duration_minutes" value="30" />
+        <input type="hidden" name="granularity_minutes" value="15" />
 
         <fieldset class="grid two-column">
           <label>
@@ -215,10 +227,18 @@
           </label>
         </fieldset>
 
-        <fieldset>
+        <fieldset class="grid two-column">
           <label>
             Preferred Date
             <input type="date" name="preferred_date" required />
+          </label>
+          <label>
+            Preferred Time
+            <select name="preferred_time">
+              <option value="any" selected>Any Time</option>
+              <option value="morning">Morning (8am-12pm)</option>
+              <option value="afternoon">Afternoon (12pm-5pm)</option>
+            </select>
           </label>
         </fieldset>
 
@@ -235,12 +255,7 @@
             <select name="urgency">
               <option value="Routine" selected>Routine</option>
               <option value="Urgent">Urgent</option>
-              <option value="Emergency">Emergency</option>
             </select>
-          </label>
-          <label>
-            Granularity (minutes)
-            <input type="number" name="granularity_minutes" min="5" step="5" value="15" />
           </label>
         </fieldset>
 
@@ -253,6 +268,10 @@
         <h2>Recommended appointment slots</h2>
         <div id="results-container"></div>
       </section>
+
+      <div style="margin-top: 2rem">
+        <a href="/onboarding">Switch to Clinic Onboarding (Dev Link)</a>
+      </div>
     </div>
 
     <script>
@@ -312,8 +331,18 @@
           return;
         }
 
-        payload.start = `${preferredDate}T00:00:00`;
-        payload.end = `${preferredDate}T23:59:59`;
+        const preferredTime = payload.preferred_time;
+
+        if (preferredTime === "morning") {
+          payload.start = `${preferredDate}T08:00:00`;
+          payload.end = `${preferredDate}T12:00:00`;
+        } else if (preferredTime === "afternoon") {
+          payload.start = `${preferredDate}T12:00:00`;
+          payload.end = `${preferredDate}T17:00:00`;
+        } else {
+          payload.start = `${preferredDate}T00:00:00`;
+          payload.end = `${preferredDate}T23:59:59`;
+        }
         payload.duration_minutes = Number(payload.duration_minutes || 30);
         payload.granularity_minutes = Number(payload.granularity_minutes || 15);
         payload.clinic_id = Number(payload.clinic_id);
