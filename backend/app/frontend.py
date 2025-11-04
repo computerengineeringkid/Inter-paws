@@ -11,3 +11,10 @@ def booking_form() -> str:
     """Render the client booking interface."""
 
     return render_template("client/booking.html")
+
+
+@frontend_bp.get("/onboarding")
+def clinic_onboarding_form() -> str:
+    """Render the clinic onboarding wizard."""
+
+    return render_template("clinic/onboarding.html")
