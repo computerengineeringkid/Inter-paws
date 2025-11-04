@@ -69,6 +69,8 @@
       }
 
       input[type="text"],
+      input[type="email"],
+      input[type="date"],
       input[type="datetime-local"],
       input[type="number"],
       select,
@@ -180,54 +182,43 @@
       </p>
 
       <form id="booking-form">
+        <input type="hidden" name="clinic_id" value="1" />
+        <input type="hidden" name="duration_minutes" value="30" />
+
         <fieldset class="grid two-column">
           <label>
-            Clinic ID
+            Pet's Name
             <input
-              type="number"
-              name="clinic_id"
-              min="1"
-              step="1"
+              type="text"
+              name="pet_name"
               required
-              placeholder="e.g. 1"
+              placeholder="e.g. Luna"
             />
           </label>
           <label>
-            Appointment Duration (minutes)
-            <input type="number" name="duration_minutes" min="15" step="15" value="30" />
-          </label>
-          <label>
-            Pet ID
+            Your Name
             <input
-              type="number"
-              name="pet_id"
-              min="1"
-              step="1"
+              type="text"
+              name="owner_name"
               required
-              placeholder="e.g. 12"
+              placeholder="e.g. Alex Johnson"
             />
           </label>
           <label>
-            Owner ID
+            Your Email
             <input
-              type="number"
-              name="owner_id"
-              min="1"
-              step="1"
+              type="email"
+              name="owner_email"
               required
-              placeholder="e.g. 5"
+              placeholder="you@example.com"
             />
           </label>
         </fieldset>
 
-        <fieldset class="grid two-column">
+        <fieldset>
           <label>
-            Preferred start
-            <input type="datetime-local" name="preferred_start" required />
-          </label>
-          <label>
-            Preferred end
-            <input type="datetime-local" name="preferred_end" required />
+            Preferred Date
+            <input type="date" name="preferred_date" required />
           </label>
         </fieldset>
 
@@ -314,24 +305,30 @@
         const formData = new FormData(form);
         const payload = Object.fromEntries(formData.entries());
 
-        const preferredStart = payload.preferred_start;
-        const preferredEnd = payload.preferred_end;
+        const preferredDate = payload.preferred_date;
 
-        if (preferredStart >= preferredEnd) {
-          showError("Preferred end time must be after the start time.");
+        if (!preferredDate) {
+          showError("Please select a preferred date.");
           return;
         }
 
-        payload.start = preferredStart;
-        payload.end = preferredEnd;
+        payload.start = `${preferredDate}T00:00:00`;
+        payload.end = `${preferredDate}T23:59:59`;
         payload.duration_minutes = Number(payload.duration_minutes || 30);
         payload.granularity_minutes = Number(payload.granularity_minutes || 15);
         payload.clinic_id = Number(payload.clinic_id);
-        if (payload.pet_id) {
-          payload.pet_id = Number(payload.pet_id);
+        payload.owner_name = payload.owner_name?.trim() || "";
+        payload.owner_email = payload.owner_email?.trim() || "";
+        payload.pet_name = payload.pet_name?.trim() || "";
+
+        if (Number.isNaN(payload.clinic_id)) {
+          showError("Clinic ID must be a valid number.");
+          return;
         }
-        if (payload.owner_id) {
-          payload.owner_id = Number(payload.owner_id);
+
+        if (!payload.owner_name || !payload.owner_email || !payload.pet_name) {
+          showError("Please provide your name, email, and your pet's name.");
+          return;
         }
 
         const submitButton = form.querySelector("button[type='submit']");
@@ -410,16 +407,20 @@
         }
 
         const clinicIdValue = form.elements.clinic_id.value;
-        const petIdValue = form.elements.pet_id.value;
-        const ownerIdValue = form.elements.owner_id.value;
+        const ownerName = form.elements.owner_name.value.trim();
+        const ownerEmail = form.elements.owner_email.value.trim();
+        const petName = form.elements.pet_name.value.trim();
         const reasonValue = form.elements.reason_for_visit.value || "";
 
         const clinicId = Number(clinicIdValue);
-        const petId = Number(petIdValue);
-        const ownerId = Number(ownerIdValue);
 
-        if ([clinicId, petId, ownerId].some(Number.isNaN)) {
-          showError("Clinic, pet, and owner IDs must be valid numbers.");
+        if (Number.isNaN(clinicId)) {
+          showError("Clinic ID must be a valid number.");
+          return;
+        }
+
+        if (!ownerName || !ownerEmail || !petName) {
+          showError("Please provide your name, email, and your pet's name.");
           return;
         }
 
@@ -429,8 +430,9 @@
 
         const bookingPayload = {
           clinic_id: clinicId,
-          pet_id: petId,
-          owner_id: ownerId,
+          owner_name: ownerName,
+          owner_email: ownerEmail,
+          pet_name: petName,
           reason: reasonValue.trim() || null,
           suggestion: slot,
         };
