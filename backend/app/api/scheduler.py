@@ -8,7 +8,6 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     get_jwt_identity,
-    jwt_required,
     verify_jwt_in_request,
 )
 
@@ -106,7 +105,6 @@ def _parse_datetime(value: str | None, field: str) -> datetime:
 
 
 @scheduler_bp.post("/book")
-@jwt_required()
 def book_appointment() -> tuple[object, HTTPStatus]:
     """Confirm an appointment slot and log the associated feedback event."""
 
@@ -137,39 +135,28 @@ def book_appointment() -> tuple[object, HTTPStatus]:
             HTTPStatus.BAD_REQUEST,
         )
 
-    identity = get_jwt_identity()
-    try:
-        user_id = int(identity) if identity is not None else None
-    except (TypeError, ValueError):  # pragma: no cover - defensive
-        user_id = None
-
-    current_user = User.query.get(user_id) if user_id is not None else None
-
-    if current_user is None:
-        return jsonify(message="Authenticated user could not be resolved."), HTTPStatus.UNAUTHORIZED
-
     clinic = Clinic.query.get(clinic_id_int)
     if clinic is None:
         return jsonify(message="Clinic not found."), HTTPStatus.NOT_FOUND
 
-    if current_user.clinic_id is not None and current_user.clinic_id != clinic.id:
-        return (
-            jsonify(message="You are not authorized to book appointments for this clinic."),
-            HTTPStatus.FORBIDDEN,
-        )
-
     owner_id = payload.get("owner_id")
+    if owner_id is None:
+        return jsonify(message="owner_id is required."), HTTPStatus.BAD_REQUEST
+
     try:
-        owner_id_int = int(owner_id) if owner_id is not None else current_user.id
+        owner_id_int = int(owner_id)
     except (TypeError, ValueError):
         return jsonify(message="owner_id must be an integer."), HTTPStatus.BAD_REQUEST
 
+    current_user = User.query.get(owner_id_int)
     owner = User.query.filter_by(id=owner_id_int, clinic_id=clinic.id).first()
     if owner is None:
         return (
             jsonify(message="owner_id must reference a user in this clinic."),
             HTTPStatus.BAD_REQUEST,
         )
+
+    current_user = owner
 
     doctor_id = suggestion.get("doctor_id")
     if doctor_id is not None:
