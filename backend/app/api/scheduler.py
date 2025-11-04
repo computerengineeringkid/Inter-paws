@@ -22,7 +22,7 @@ from backend.app.models import (
     User,
 )
 from backend.app.services.scheduler_service import find_candidate_slots_for_request
-from backend.extensions import db
+from backend.extensions import bcrypt, db
 
 scheduler_bp = Blueprint("scheduler", __name__)
 
@@ -139,24 +139,50 @@ def book_appointment() -> tuple[object, HTTPStatus]:
     if clinic is None:
         return jsonify(message="Clinic not found."), HTTPStatus.NOT_FOUND
 
-    owner_id = payload.get("owner_id")
-    if owner_id is None:
-        return jsonify(message="owner_id is required."), HTTPStatus.BAD_REQUEST
+    owner_name = (payload.get("owner_name") or "").strip()
+    owner_email = (payload.get("owner_email") or "").strip()
+    pet_name = (payload.get("pet_name") or "").strip()
 
-    try:
-        owner_id_int = int(owner_id)
-    except (TypeError, ValueError):
-        return jsonify(message="owner_id must be an integer."), HTTPStatus.BAD_REQUEST
-
-    current_user = User.query.get(owner_id_int)
-    owner = User.query.filter_by(id=owner_id_int, clinic_id=clinic.id).first()
-    if owner is None:
+    if not owner_name or not owner_email or not pet_name:
         return (
-            jsonify(message="owner_id must reference a user in this clinic."),
+            jsonify(message="owner_name, owner_email, and pet_name are required."),
             HTTPStatus.BAD_REQUEST,
         )
 
-    current_user = owner
+    user = User.query.filter_by(email=owner_email, clinic_id=clinic_id_int).first()
+
+    if user is None:
+        dummy_hash = bcrypt.generate_password_hash("password123").decode("utf-8")
+        user = User(
+            clinic_id=clinic_id_int,
+            email=owner_email,
+            full_name=owner_name,
+            password_hash=dummy_hash,
+            role="client",
+        )
+        db.session.add(user)
+        db.session.flush()
+    else:
+        if owner_name and user.full_name != owner_name:
+            user.full_name = owner_name
+
+    pet = Pet.query.filter_by(
+        name=pet_name,
+        owner_id=user.id,
+        clinic_id=clinic_id_int,
+    ).first()
+
+    if pet is None:
+        pet = Pet(
+            clinic_id=clinic_id_int,
+            owner_id=user.id,
+            name=pet_name,
+            species="Unknown",
+        )
+        db.session.add(pet)
+        db.session.flush()
+
+    current_user = user
 
     doctor_id = suggestion.get("doctor_id")
     if doctor_id is not None:
@@ -205,25 +231,10 @@ def book_appointment() -> tuple[object, HTTPStatus]:
     else:
         constraint_id_int = None
 
-    pet_id = payload.get("pet_id")
-    if pet_id is not None:
-        try:
-            pet_id_int = int(pet_id)
-        except (TypeError, ValueError):
-            return jsonify(message="pet_id must be an integer."), HTTPStatus.BAD_REQUEST
-        pet = Pet.query.filter_by(id=pet_id_int, clinic_id=clinic.id).first()
-        if pet is None:
-            return (
-                jsonify(message="pet_id must reference a pet in this clinic."),
-                HTTPStatus.BAD_REQUEST,
-            )
-    else:
-        pet_id_int = None
-
     appointment = Appointment(
         clinic_id=clinic_id_int,
-        pet_id=pet_id_int,
-        owner_id=owner_id_int,
+        pet_id=pet.id,
+        owner_id=user.id,
         doctor_id=doctor_id_int,
         room_id=room_id_int,
         constraint_id=constraint_id_int,
