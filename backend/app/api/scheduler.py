@@ -6,10 +6,7 @@ from http import HTTPStatus
 from typing import Any
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import (
-    get_jwt_identity,
-    verify_jwt_in_request,
-)
+from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
 
 from backend.app.models import (
     Appointment,
@@ -277,3 +274,60 @@ def book_appointment() -> tuple[object, HTTPStatus]:
     }
 
     return jsonify(response_payload), HTTPStatus.CREATED
+
+
+@scheduler_bp.get("/history")
+@jwt_required()
+def appointment_history() -> tuple[object, HTTPStatus]:
+    """Return appointment history for the authenticated client."""
+
+    identity = get_jwt_identity()
+    try:
+        user_id = int(identity) if identity is not None else None
+    except (TypeError, ValueError):
+        user_id = None
+
+    if user_id is None:
+        return jsonify(message="Invalid token."), HTTPStatus.UNAUTHORIZED
+
+    user = User.query.get(user_id)
+    if user is None:
+        return jsonify(message="User not found."), HTTPStatus.NOT_FOUND
+
+    appointments = (
+        Appointment.query.filter_by(owner_id=user.id)
+        .order_by(Appointment.start_time.desc())
+        .limit(100)
+        .all()
+    )
+
+    payload = [
+        {
+            "id": appointment.id,
+            "start_time": appointment.start_time.isoformat(),
+            "end_time": appointment.end_time.isoformat(),
+            "status": appointment.status,
+            "reason": appointment.reason,
+            "doctor": {
+                "id": appointment.doctor.id,
+                "display_name": appointment.doctor.display_name,
+            }
+            if appointment.doctor
+            else None,
+            "room": {
+                "id": appointment.room.id,
+                "name": appointment.room.name,
+            }
+            if appointment.room
+            else None,
+            "pet": {
+                "id": appointment.pet.id,
+                "name": appointment.pet.name,
+            }
+            if appointment.pet
+            else None,
+        }
+        for appointment in appointments
+    ]
+
+    return jsonify(appointments=payload), HTTPStatus.OK

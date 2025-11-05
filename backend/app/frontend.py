@@ -7,14 +7,16 @@ frontend_bp = Blueprint("frontend", __name__)
 
 
 @frontend_bp.get("/booking")
-def booking_form() -> str:
+@frontend_bp.get("/client/<path:path>")
+def booking_form(path: str | None = None) -> str:
     """Render the client booking interface."""
 
     return render_template("client/booking.html")
 
 
 @frontend_bp.get("/onboarding")
-def clinic_onboarding_form() -> str:
+@frontend_bp.get("/clinic/<path:path>")
+def clinic_onboarding_form(path: str | None = None) -> str:
     """Render the clinic onboarding wizard."""
 
     return render_template("clinic/onboarding.html")
