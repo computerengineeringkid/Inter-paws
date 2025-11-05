@@ -136,8 +136,13 @@ def rank_slots_with_llm(
 
     slot_lines = []
     for slot in slots:
+        specialty_info = ""
+        if slot.get("doctor_specialty"):
+            specialty_info = f" (Specialty: {slot['doctor_specialty']})"
+
         line = (
-            f"- slot_id: {slot['slot_id']} | doctor_id: {slot['doctor_id']} | "
+            f"- slot_id: {slot['slot_id']} | "
+            f"doctor_id: {slot['doctor_id']}{specialty_info} | "
             f"room_id: {slot['room_id']} | start: {slot['start_time']} | "
             f"end: {slot['end_time']}"
         )

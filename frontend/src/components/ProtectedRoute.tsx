@@ -2,6 +2,8 @@ import { Navigate, useLocation } from "react-router-dom";
 import { PropsWithChildren, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
+// The fix is to add 'PropsWithChildren' here.
+// This automatically adds the 'children' prop to our interface.
 interface ProtectedRouteProps extends PropsWithChildren {
   fallback: string;
   requireAdmin?: boolean;
