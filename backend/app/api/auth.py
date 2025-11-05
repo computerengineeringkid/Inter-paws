@@ -6,7 +6,7 @@ from http import HTTPStatus
 
 from flask import jsonify, request
 from flask.typing import ResponseReturnValue
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 
 from backend.app.models import User
 from backend.extensions import bcrypt, db
@@ -79,3 +79,31 @@ def login() -> ResponseReturnValue:
 
     access_token = create_access_token(identity=str(user.id))
     return jsonify(access_token=access_token), HTTPStatus.OK
+
+
+@api_bp.get("/auth/me")
+@jwt_required()
+def current_user() -> ResponseReturnValue:
+    """Return the authenticated user's profile."""
+
+    identity = get_jwt_identity()
+    try:
+        user_id = int(identity) if identity is not None else None
+    except (TypeError, ValueError):
+        user_id = None
+
+    if user_id is None:
+        return jsonify(message="Invalid token."), HTTPStatus.UNAUTHORIZED
+
+    user = User.query.get(user_id)
+    if user is None:
+        return jsonify(message="User not found."), HTTPStatus.NOT_FOUND
+
+    payload = {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "clinic_id": user.clinic_id,
+    }
+    return jsonify(payload), HTTPStatus.OK
