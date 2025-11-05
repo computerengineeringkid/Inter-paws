@@ -1,224 +1,204 @@
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
-import { addMinutes, format } from "date-fns";
-import { apiFetch } from "../utils/api";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useMutation }_from "@tanstack/react-query";
+import { apiFetchWithBody } from "../utils/api";
+import { RecommendedSlot, AppointmentRequest } from "../types";
 
-interface SlotSearchForm {
-  clinic_id: number;
-  reason_for_visit: string;
-  urgency: string;
-  start: string;
-  end: string;
-  duration_minutes: number;
-  pet_name: string;
-}
+export function ClientBookingPage() {
+  const { user } = useAuth();
+  const [reason, setReason] = useState("");
+  const [urgency, setUrgency] = useState("routine");
+  const [selectedPetId, setSelectedPetId] = useState("");
+  const [newPetName, setNewPetName] = useState("");
+  const [newPetSpecies, setNewPetSpecies] = useState("");
+  const [newPetBreed, setNewPetBreed] = useState("");
+  const [newPetBirthDate, setNewPetBirthDate] = useState("");
 
-interface RankedSuggestion {
-  doctor_id: number | null;
-  room_id: number | null;
-  start_time: string;
-  end_time: string;
-  rank: number;
-  score: number | null;
-  rationale: string;
-}
+  const [recommendations, setRecommendations] = useState<RecommendedSlot[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<RecommendedSlot | null>(
+    null
+  );
 
-interface SlotSearchResponse {
-  suggestions: RankedSuggestion[];
-}
+  const {
+    mutate: findSlots,
+    isPending: isFindingSlots,
+    isError: findError,
+  } = useMutation<RecommendedSlot[], Error, AppointmentRequest>({
+    mutationFn: (request) =>
+      apiFetchWithBody("/api/scheduler/recommendations", "POST", request),
+    onSuccess: (data) => {
+      setRecommendations(data);
+      setSelectedSlot(null);
+    },
+  });
 
-function ClientBookingPage() {
-  const { token, profile, logout } = useAuth();
-  const defaultStart = useMemo(() => new Date(), []);
-  const defaultEnd = useMemo(() => addMinutes(new Date(), 60 * 24 * 7), []);
-  const form = useForm<SlotSearchForm>({
-    defaultValues: {
-      clinic_id: profile?.clinic_id ?? 1,
-      reason_for_visit: "Wellness exam",
-      urgency: "routine",
-      start: format(defaultStart, "yyyy-MM-dd'T'HH:mm"),
-      end: format(defaultEnd, "yyyy-MM-dd'T'HH:mm"),
+  const {
+    mutate: bookSlot,
+    isPending: isBooking,
+    isSuccess: isBooked,
+    error: bookError,
+  } = useMutation<unknown, Error, { slot: RecommendedSlot; feedbackRank: number }>({
+    mutationFn: ({ slot, feedbackRank }) =>
+      apiFetchWithBody("/api/scheduler/book", "POST", {
+        doctor_id: slot.doctor_id,
+        room_id: slot.room_id,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        pet_id: selectedPetId === "new" ? null : parseInt(selectedPetId),
+        pet_name: selectedPetId === "new" ? newPetName : undefined,
+        pet_species: selectedPetId === "new" ? newPetSpecies : undefined,
+        pet_breed: selectedPetId === "new" ? newPetBreed : undefined,
+        pet_birth_date: selectedPetId === "new" ? newPetBirthDate : undefined,
+        reason_for_visit: reason,
+        feedback_rank_selection: feedbackRank,
+      }),
+    onSuccess: ()ax => {
+      setRecommendations([]);
+      setSelectedSlot(null);
+      // In a real app, you'd probably refetch user's pets or appointments
+    },
+  });
+
+  const handleFindSlots = (e: React.FormEvent) => {
+    e.preventDefault();
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + 14); // Look 2 weeks out
+
+    findSlots({
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
       duration_minutes: 30,
-      pet_name: "", 
-    },
-  });
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<RankedSuggestion | null>(null);
-  const [suggestions, setSuggestions] = useState<RankedSuggestion[]>([]);
+      reason_for_visit: reason,
+      urgency,
+    });
+  };
 
-  useEffect(() => {
-    if (profile?.clinic_id) {
-      form.setValue("clinic_id", profile.clinic_id);
-    }
-  }, [profile?.clinic_id, form]);
+  const handleBookSlot = (slot: RecommendedSlot, rank: number) => {
+    setSelectedSlot(slot);
+    bookSlot({ slot, feedbackRank: rank });
+  };
 
-  const findSlots = useMutation({
-    mutationFn: async (values: SlotSearchForm) => {
-      const payload = {
-        clinic_id: values.clinic_id,
-        reason_for_visit: values.reason_for_visit,
-        urgency: values.urgency,
-        start: new Date(values.start).toISOString(),
-        end: new Date(values.end).toISOString(),
-        duration_minutes: values.duration_minutes,
-      };
-      const response = await apiFetch<SlotSearchResponse>("/schedule/find-slots", {
-        method: "POST",
-        body: JSON.stringify(payload),
-        token,
-      });
-      return response.suggestions || [];
-    },
-    onSuccess: (slots) => {
-      setSuggestions(slots);
-      setSelectedSuggestion(slots[0] ?? null);
-    },
-    onError: (error: any) => {
-      const message = error?.data?.message ?? "Unable to find appointment slots.";
-      setErrorMessage(message);
-    },
-  });
-
-  const book = useMutation({
-    mutationFn: async () => {
-      if (!selectedSuggestion) {
-        throw new Error("Select a suggestion to continue");
-      }
-      const values = form.getValues();
-      const response = await apiFetch<{ message: string }>("/schedule/book", {
-        method: "POST",
-        body: JSON.stringify({
-          clinic_id: values.clinic_id,
-          suggestion: selectedSuggestion,
-          owner_name: profile?.full_name ?? "",
-          owner_email: profile?.email ?? "",
-          pet_name: values.pet_name,
-          reason: values.reason_for_visit,
-        }),
-        token,
-      });
-      return response;
-    },
-    onSuccess: (payload) => {
-      setSuccessMessage(payload.message ?? "Appointment booked successfully.");
-      setSuggestions([]);
-      setSelectedSuggestion(null);
-    },
-    onError: (error: any) => {
-      const message = error?.data?.message ?? "Unable to complete the booking.";
-      setErrorMessage(message);
-    },
-  });
+  const petList = user?.pets || [];
 
   return (
-    <>
-    <div className="card">
-      <h1>Find the perfect time for {profile?.full_name ?? "your pet"}</h1>
-      <p style={{ color: "#4b5563" }}>
-        Tell us what you need and Inter-Paws will curate recommended appointment windows across your clinic.
-      </p>
-      {errorMessage ? (
-        <div className="alert error" role="alert">
-          {errorMessage}
-        </div>
-      ) : null}
-      {successMessage ? (
-        <div className="alert success" role="status">
-          {successMessage}
-        </div>
-      ) : null}
-      <form
-        className="form-grid two-column"
-        onSubmit={form.handleSubmit(async (values) => {
-          setErrorMessage(null);
-          setSuccessMessage(null);
-          await findSlots.mutateAsync(values);
-        })}
-      >
-        <label>
-          <span>Clinic ID</span>
-          <input type="number" {...form.register("clinic_id", { valueAsNumber: true, required: true })} />
-        </label>
-        <label>
-          <span>Pet name</span>
-          <input type="text" {...form.register("pet_name", { required: true })} placeholder="Luna" />
-        </label>
-        <label>
-          <span>Reason for visit</span>
-          <input type="text" {...form.register("reason_for_visit", { required: true })} placeholder="Annual vaccines" />
-        </label>
-        <label>
-          <span>Urgency</span>
-          <select {...form.register("urgency")}> 
-            <option value="routine">Routine</option>
-            <option value="urgent">Urgent</option>
-            <option value="follow-up">Follow-up</option>
-          </select>
-        </label>
-        <label>
-          <span>Search start (ISO)</span>
-          <input type="datetime-local" {...form.register("start", { required: true })} />
-        </label>
-        <label>
-          <span>Search end (ISO)</span>
-          <input type="datetime-local" {...form.register("end", { required: true })} />
-        </label>
-        <label>
-          <span>Duration (minutes)</span>
-          <input type="number" {...form.register("duration_minutes", { valueAsNumber: true, required: true })} />
-        </label>
-        <div style={{ alignSelf: "flex-end" }}>
-          <button className="primary" type="submit" disabled={findSlots.isPending}>
-            {findSlots.isPending ? "Analyzing availability..." : "Search suggestions"}
-          </button>
-        </div>
-      </form>
-    </div>
-    {suggestions.length > 0 ? (
+    <main className="content">
       <div className="card">
-        <div className="stack horizontal" style={{ justifyContent: "space-between" }}>
-          <div>
-            <h2>Recommended slots</h2>
-            <p style={{ color: "#4b5563", margin: 0 }}>
-              Choose the time that works best. Each suggestion includes context from our scheduling assistant.
-            </p>
-          </div>
-          <button className="primary" onClick={() => book.mutateAsync()} disabled={!selectedSuggestion || book.isPending}>
-            {book.isPending ? "Booking..." : "Book selected slot"}
-          </button>
+        <h2>Book an Appointment</h2>
+        <p>Find and book the best time for your pet's needs.</p>
+      </div>
+
+      <div className="card-container">
+        <div className="card">
+          <h3>1. Select Pet</h3>
+          <select
+            value={selectedPetId}
+            onChange={(e) => setSelectedPetId(e.target.value)}
+          >
+            <option value="">-- Select a pet --</option>
+            {petList.map((pet) => (
+              <option key={pet.id} value={pet.id}>
+                {pet.name} ({pet.species})
+              </option>
+            ))}
+            <option value="new">-- Add a new pet --</option>
+          </select>
+
+          {selectedPetId === "new" && (
+            <div className="new-pet-form">
+              <input
+                type="text"
+                value={newPetName}
+                onChange={(e) => setNewPetName(e.target.value)}
+                placeholder="Pet's Name"
+              />
+              <input
+                type="text"
+                value={newPetSpecies}
+                onChange={(e) => setNewPetSpecies(e.target.value)}
+                placeholder="Species (e.g., Dog, Cat)"
+              />
+              <input
+                type="text"
+                value={newPetBreed}
+                onChange={(e) => setNewPetBreed(e.target.value)}
+                placeholder="Breed"
+              />
+              <input
+                type="date"
+                value={newPetBirthDate}
+                onChange={(e) => setNewPetBirthDate(e.target.value)}
+                placeholder="Birth Date"
+              />
+            </div>
+          )}
         </div>
-        <div className="schedule-grid" style={{ marginTop: "1.5rem" }}>
-          {suggestions.map((slot) => {
-            const isSelected = selectedSuggestion?.start_time === slot.start_time;
-            return (
-              <button
-                key={`${slot.start_time}-${slot.rank}`}
-                type="button"
-                className="schedule-card"
-                onClick={() => setSelectedSuggestion(slot)}
-                style={{
-                  borderColor: isSelected ? "#2563eb" : undefined,
-                  boxShadow: isSelected ? "0 0 0 2px rgba(37, 99, 235, 0.35)" : undefined,
-                  textAlign: "left",
-                }}
-              >
-                <div className="badge">Rank {slot.rank}</div>
-                <h3 style={{ marginBottom: "0.5rem" }}>{new Date(slot.start_time).toLocaleString()}</h3>
-                <p style={{ color: "#4b5563", marginTop: 0 }}>
-                  Ends at {new Date(slot.end_time).toLocaleTimeString()} &middot; Score {slot.score?.toFixed(2) ?? "N/A"}
-                </p>
-                <p style={{ marginTop: "0.75rem", color: "#1f2937" }}>{slot.rationale}</p>
-              </button>
-            );
-          })}
+
+        <div className="card">
+          <h3>2. Reason for Visit</h3>
+          <form onSubmit={handleFindSlots}>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Reason for visit (e.g., Checkup, Limping)"
+              required
+            />
+            <select
+              value={urgency}
+              onChange={(e) => setUrgency(e.target.value)}
+            >
+              <option value="routine">Routine</option>
+              <option value="urgent">Urgent</option>
+              <option value="emergency">Emergency</option>
+            </select>
+            <button
+              type="submit"
+              disabled={
+                !selectedPetId || (selectedPetId === "new" && !newPetName)
+              }
+            >
+              {isFindingSlots ? "Finding..." : "Find Available Slots"}
+            </button>
+            {findError && (
+              <p className="error">Error finding slots. Please try again.</p>
+            )}
+          </form>
+        </div>
+
+        <div className="card">
+          <h3>3. Choose a Recommended Slot</h3>
+          {isFindingSlots && <p>Loading recommendations...</p>}
+          {recommendations.length > 0 && (
+            <ul className="recommendation-list">
+              {recommendations.map((slot) => (
+                <li key={slot.start_time}>
+                  <div className="slot-info">
+                    <strong>
+                      {new Date(slot.start_time).toLocaleString()}
+                    </strong>
+                    <p>{slot.rationale}</p>
+                  </div>
+                  <button
+                    onClick={() => handleBookSlot(slot, slot.rank)}
+                    disabled={isBooking}
+                  >
+                    Book
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {isBooked && (
+            <p className="success">Appointment booked successfully!</p>
+          )}
+          {bookError && (
+            <p className="error">
+              Failed to book slot: {bookError.message}
+            </p>
+          )}
         </div>
       </div>
-    ) : null}
-    </>
+    </main>
   );
 }
-
-export default ClientBookingPage;

@@ -1,80 +1,51 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../utils/api";
-import { useAuth } from "../context/AuthContext";
+import { Appointment } from "../types";
 
-interface AppointmentRecord {
-  id: number;
-  start_time: string;
-  end_time: string;
-  status: string;
-  doctor?: { id: number; display_name: string | null } | null;
-  room?: { id: number; name: string | null } | null;
-  pet?: { id: number; name: string | null } | null;
-  reason?: string | null;
-}
-
-interface HistoryResponse {
-  appointments: AppointmentRecord[];
-}
-
-function ClientHistoryPage() {
-  const { token, profile, logout } = useAuth();
-  const historyQuery = useQuery({
-    queryKey: ["visit-history"],
-    queryFn: async () => {
-      const response = await apiFetch<HistoryResponse>("/schedule/history", {
-        method: "GET",
-        token,
-      });
-      return response.appointments || [];
-    },
+export function ClientHistoryPage() {
+  const {
+    data: history,
+    isLoading,
+    isError,
+  } = useQuery<Appointment[]>({
+    queryKey: ["clientHistory"],
+    queryFn: () => apiFetch("/api/scheduler/history"),
   });
 
+  if (isLoading) return <div>Loading appointment history...</div>;
+  if (isError) return <div>Error loading history.</div>;
+
   return (
-    <>
-    <div className="card">
-      <h1>Visit history</h1>
-      <p style={{ color: "#4b5563" }}>Track past and upcoming visits associated with {profile?.full_name ?? "your account"}.</p>
-    </div>
-    <div className="card">
-      {historyQuery.isLoading ? <p>Loading visits...</p> : null}
-      {historyQuery.isError ? (
-        <div className="alert error" role="alert">
-          Unable to load visit history. Try refreshing the page.
+    <main className="content">
+      <div className="card">
+        <h2>My Appointment History</h2>
+        <p>View your past and upcoming appointments.</p>
+      </div>
+      <div className="card-container">
+        <div className="card">
+          <h3>Appointments</h3>
+          {history && history.length > 0 ? (
+            <ul>
+              {history.map((appt) => (
+                <li key={appt.id}>
+                  <strong>
+                    {new Date(appt.start_time).toLocaleString()}
+                  </strong>
+                  <br />
+                  Pet: {appt.pet_name || "N/A"}
+                  <br />
+                  Doctor: {appt.doctor_name || "N/A"} | Room:{" "}
+                  {appt.room_name || "N/A"}
+                  <br />
+                  Reason: {appt.reason_for_visit}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No appointments found.</p>
+          )}
         </div>
-      ) : null}
-      {!historyQuery.isLoading && historyQuery.data?.length === 0 ? (
-        <p>No visits found yet. Start by booking an appointment.</p>
-      ) : null}
-      {historyQuery.data && historyQuery.data.length > 0 ? (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Pet</th>
-              <th>Doctor</th>
-              <th>Room</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {historyQuery.data.map((appointment) => (
-              <tr key={appointment.id}>
-                <td>{new Date(appointment.start_time).toLocaleString()}</td>
-                <td>{appointment.pet?.name ?? "Unknown"}</td>
-                <td>{appointment.doctor?.display_name ?? "TBD"}</td>
-                <td>{appointment.room?.name ?? "TBD"}</td>
-                <td>
-                  <span className="badge">{appointment.status}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
-    </div>
-    </>
+      </div>
+    </main>
   );
 }
-
-export default ClientHistoryPage;
