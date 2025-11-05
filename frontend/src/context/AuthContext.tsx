@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 import { apiFetch, apiFetchWithBody } from "../utils/api";
-import { AuthContextValue, AuthUser } from "../types";
+import { AuthContextValue, AuthUser } from "../types.ts";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 

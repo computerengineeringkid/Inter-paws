@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../utils/api";
-import { Appointment } from "../types";
+import { Appointment } from "../types.ts";
 
 export function ClientHistoryPage() {
   const {

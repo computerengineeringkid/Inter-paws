@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../utils/api";
-import { Pet, User } from "../types";
+import { Pet, User } from "../types.ts";
 
 interface PatientListResponse {
   pets: Pet[];

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useMutation } from "@tanstack/react-query";
 import { apiFetchWithBody } from "../utils/api";
-import { RecommendedSlot, AppointmentRequest } from "../types";
+import { RecommendedSlot, AppointmentRequest } from "../types.ts";
 
 export function ClientBookingPage() {
   const { user } = useAuth();

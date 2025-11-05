@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiFetchWithBody } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
-import { Doctor, Room } from "../types";
+import { Doctor, Room } from "../types.ts";
 
 export function ClinicDashboardPage() {
   const { user } = useAuth();
