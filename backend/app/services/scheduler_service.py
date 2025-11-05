@@ -33,7 +33,7 @@ INSIGHTS_PATH = (
     Path(__file__).resolve().parent.parent.parent / "ai" / "scripts" / "insights.json"
 )
 
-PROMPT_TEMPLATE = """You are Inter-Paws, an AI assistant helping a veterinary clinic schedule
+PROMPT_TEMPLATE = """You are Interpaws, an AI assistant helping a veterinary clinic schedule
 appointments.
 
 Use these insights from past bookings to improve your choices:
@@ -156,7 +156,7 @@ def _rank_slots(
     historical_insights = _load_insights()
 
     prompt_context = {
-        "clinic_name": getattr(clinic, "name", "Inter-Paws Clinic"),
+        "clinic_name": getattr(clinic, "name", "Interpaws Clinic"),
         "reason_for_visit": payload.get("reason_for_visit", "Not provided"),
         "urgency": payload.get("urgency", "unspecified"),
         "preferred_start": payload.get("preferred_start")

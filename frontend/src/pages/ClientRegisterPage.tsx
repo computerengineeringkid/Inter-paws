@@ -37,7 +37,7 @@ export function ClientRegisterPage() {
     <div className="main-layout" style={{ alignItems: "stretch" }}>
       <div className="content" style={{ maxWidth: 480, margin: "0 auto" }}>
         <div className="card" style={{ marginTop: "8vh" }}>
-          <h1>Create your Inter-Paws account</h1>
+          <h1>Create your Interpaws account</h1>
           <p style={{ color: "#4b5563", marginTop: "0.5rem" }}>
             Register to search for appointments, book visits, and view recommendations tailored for your pet.
           </p>

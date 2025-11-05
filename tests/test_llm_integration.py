@@ -12,7 +12,7 @@ from backend.app.services.llm_client import LLMRankingError, RankedSlot, parse_l
 class FakeClinic:
     """Simple stand-in for the Clinic model."""
 
-    def __init__(self, name: str = "Inter-Paws Central") -> None:
+    def __init__(self, name: str = "Interpaws Central") -> None:
         self.name = name
 
 

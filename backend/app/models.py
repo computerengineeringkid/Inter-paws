@@ -1,4 +1,4 @@
-"""Database models for the Inter-Paws scheduling platform."""
+"""Database models for the Interpaws scheduling platform."""
 from __future__ import annotations
 
 from datetime import date, datetime

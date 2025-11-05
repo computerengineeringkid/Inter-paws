@@ -1,6 +1,6 @@
 # Self-Hosting Deployment Guide
 
-This guide walks you through deploying Inter-Paws on your own infrastructure using Docker Compose. The stack consists of a Flask web application and a PostgreSQL database.
+This guide walks you through deploying Interpaws on your own infrastructure using Docker Compose. The stack consists of a Flask web application and a PostgreSQL database.
 
 ## Prerequisites
 
@@ -83,4 +83,4 @@ Open a browser and navigate to `http://<server-ip>:5000` (replace `<server-ip>` 
   ```
 - Monitor container health with `docker compose ps` and logs with `docker compose logs -f`.
 
-With these steps, your Inter-Paws deployment should be live on your self-hosted infrastructure.
+With these steps, your Interpaws deployment should be live on your self-hosted infrastructure.

@@ -1,4 +1,4 @@
--- Schema definition for the Inter-Paws scheduling platform.
+-- Schema definition for the Interpaws scheduling platform.
 
 CREATE TABLE clinics (
     id SERIAL PRIMARY KEY,

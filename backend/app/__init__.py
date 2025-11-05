@@ -1,8 +1,10 @@
-"""Application factory for the Inter-Paws backend."""
+"""Application factory for the Interpaws backend."""
 from __future__ import annotations
 
 from flask import Flask
 from flask_cors import CORS
+
+from sqlalchemy import inspect
 
 from backend.config import get_config
 from backend.app.middleware import register_audit_middleware
@@ -51,6 +53,11 @@ def register_blueprints(app: Flask) -> None:
 def _seed_dev_admin(app: Flask) -> None:
     """Seed a default admin user for development."""
     with app.app_context():
+        engine = db.engine
+        inspector = inspect(engine)
+        if not inspector.has_table("users"):
+            return
+
         existing_admin = User.query.filter_by(email="admin@example.com").first()
         if not existing_admin:
             password_hash = bcrypt.generate_password_hash("admin").decode("utf-8")

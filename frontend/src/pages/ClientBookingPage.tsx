@@ -7,6 +7,8 @@ import { RecommendedSlot, AppointmentRequest } from "../types.ts";
 
 export function ClientBookingPage() {
   const { user } = useAuth();
+  const legacyUser = user as unknown as { clinic_id?: number | null } | null;
+  const clinicId = user?.clinicId ?? legacyUser?.clinic_id ?? null;
   const [reason, setReason] = useState("");
   const [urgency, setUrgency] = useState("routine");
   const [selectedPetId, setSelectedPetId] = useState("");
@@ -41,6 +43,7 @@ export function ClientBookingPage() {
   } = useMutation<unknown, Error, { slot: RecommendedSlot; feedbackRank: number }>({
     mutationFn: ({ slot, feedbackRank }) =>
       apiFetchWithBody("/api/scheduler/book", "POST", {
+        clinic_id: clinicId,
         doctor_id: slot.doctor_id,
         room_id: slot.room_id,
         start_time: slot.start_time,
@@ -62,6 +65,11 @@ export function ClientBookingPage() {
 
   const handleFindSlots = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!clinicId) {
+      console.error("Clinic ID is required to search for appointments.");
+      return;
+    }
+
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(startDate.getDate() + 14); // Look 2 weeks out
@@ -72,10 +80,16 @@ export function ClientBookingPage() {
       duration_minutes: 30,
       reason_for_visit: reason,
       urgency,
+      clinic_id: clinicId,
     });
   };
 
   const handleBookSlot = (slot: RecommendedSlot, rank: number) => {
+    if (!clinicId) {
+      console.error("Clinic ID is required to book an appointment.");
+      return;
+    }
+
     setSelectedSlot(slot);
     bookSlot({ slot, feedbackRank: rank });
   };

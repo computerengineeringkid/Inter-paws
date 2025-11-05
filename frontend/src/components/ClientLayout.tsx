@@ -5,7 +5,7 @@ export function ClientLayout() {
     <div className="client-layout">
       <header className="top-nav">
         <div className="nav-container">
-          <h1>Inter-Paws</h1>
+          <h1>Interpaws</h1>
           <nav>
             <NavLink to="/client/booking">Book Appointment</NavLink>
             <NavLink to="/client/history">My History</NavLink>

@@ -64,6 +64,7 @@ export interface AppointmentRequest {
   duration_minutes: number;
   reason_for_visit: string;
   urgency: string;
+  clinic_id: number;
 }
 
 // Auth
