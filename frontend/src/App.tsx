@@ -6,6 +6,7 @@ import ClientRegisterPage from "./pages/ClientRegisterPage";
 import ClinicDashboardPage from "./pages/ClinicDashboardPage";
 import ClinicSchedulePage from "./pages/ClinicSchedulePage";
 import ClinicOnboardingPage from "./pages/ClinicOnboardingPage";
+import ClinicPatientPage from "./pages/ClinicPatientPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 
@@ -55,6 +56,14 @@ function App() {
         element={
           <ProtectedRoute fallback="/clinic/login" requireAdmin>
             <ClinicSchedulePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/clinic/patients"
+        element={
+          <ProtectedRoute fallback="/clinic/login" requireAdmin>
+            <ClinicPatientPage />
           </ProtectedRoute>
         }
       />

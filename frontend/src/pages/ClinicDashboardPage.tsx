@@ -152,6 +152,7 @@ function ClinicDashboardPage() {
         <h2>Clinic HQ</h2>
         <a href="/clinic/dashboard">Dashboard</a>
         <a href="/clinic/schedule">Schedule</a>
+        <a href="/clinic/patients">Patients</a>
         <a href="/clinic/onboarding">Onboarding</a>
         <button className="secondary" style={{ marginTop: "2rem" }} onClick={logout}>
           Sign out

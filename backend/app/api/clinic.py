@@ -11,7 +11,7 @@ from flask.typing import ResponseReturnValue
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from uuid import uuid4
 
-from backend.app.models import Appointment, Clinic, Constraint, Doctor, Room, User
+from backend.app.models import Appointment, Clinic, Constraint, Doctor, Pet, Room, User
 from backend.extensions import db
 
 clinic_bp = Blueprint("clinic", __name__)
@@ -771,3 +771,41 @@ def clinic_schedule() -> ResponseReturnValue:
     ]
 
     return jsonify(appointments=payload), HTTPStatus.OK
+
+
+@clinic_bp.get("/patients")
+@jwt_required()
+def list_patients() -> ResponseReturnValue:
+    """Return pets and owners for the authenticated clinic."""
+
+    member = _current_clinic_user()
+    if not member:
+        return (
+            jsonify(message="Clinic membership is required."),
+            HTTPStatus.FORBIDDEN,
+        )
+
+    pets = Pet.query.filter_by(clinic_id=member.clinic_id).all()
+    owners = User.query.filter_by(clinic_id=member.clinic_id, role="client").all()
+
+    pets_payload = [
+        {
+            "id": pet.id,
+            "name": pet.name,
+            "species": pet.species,
+            "breed": pet.breed,
+            "owner_name": pet.owner.full_name if pet.owner else None,
+        }
+        for pet in pets
+    ]
+
+    owners_payload = [
+        {
+            "id": owner.id,
+            "name": owner.full_name,
+            "email": owner.email,
+        }
+        for owner in owners
+    ]
+
+    return jsonify(pets=pets_payload, owners=owners_payload), HTTPStatus.OK
