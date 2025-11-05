@@ -1,9 +1,19 @@
 """Database models for the Inter-Paws scheduling platform."""
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Time,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.extensions import db
@@ -126,6 +136,11 @@ class Doctor(db.Model, TimestampMixin):
     constraints: Mapped[list["Constraint"]] = relationship(
         "Constraint", back_populates="doctor"
     )
+    schedules: Mapped[list["DoctorSchedule"]] = relationship(
+        "DoctorSchedule",
+        back_populates="doctor",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<Doctor id={self.id} name={self.display_name!r}>"
@@ -150,6 +165,11 @@ class Room(db.Model, TimestampMixin):
     )
     appointments: Mapped[list["Appointment"]] = relationship(
         "Appointment", back_populates="room"
+    )
+    schedules: Mapped[list["RoomSchedule"]] = relationship(
+        "RoomSchedule",
+        back_populates="room",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
@@ -181,6 +201,56 @@ class Constraint(db.Model, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<Constraint id={self.id} title={self.title!r}>"
+
+
+class DoctorSchedule(db.Model, TimestampMixin):
+    """Recurring availability or blackout windows for a doctor."""
+
+    __tablename__ = "doctor_schedules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    clinic_id: Mapped[int] = mapped_column(ForeignKey("clinics.id"), nullable=False)
+    doctor_id: Mapped[int] = mapped_column(ForeignKey("doctors.id"), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(20), default="availability", nullable=False)
+    weekday: Mapped[int | None] = mapped_column(Integer)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
+    start_date: Mapped[date | None] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(Date)
+    notes: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    clinic: Mapped[Clinic] = relationship("Clinic")
+    doctor: Mapped[Doctor] = relationship("Doctor", back_populates="schedules")
+
+    def __repr__(self) -> str:
+        return f"<DoctorSchedule id={self.id} doctor_id={self.doctor_id} kind={self.kind!r}>"
+
+
+class RoomSchedule(db.Model, TimestampMixin):
+    """Recurring availability or blackout windows for a room."""
+
+    __tablename__ = "room_schedules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    clinic_id: Mapped[int] = mapped_column(ForeignKey("clinics.id"), nullable=False)
+    room_id: Mapped[int] = mapped_column(ForeignKey("rooms.id"), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(20), default="availability", nullable=False)
+    weekday: Mapped[int | None] = mapped_column(Integer)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
+    start_date: Mapped[date | None] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(Date)
+    notes: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    clinic: Mapped[Clinic] = relationship("Clinic")
+    room: Mapped[Room] = relationship("Room", back_populates="schedules")
+
+    def __repr__(self) -> str:
+        return f"<RoomSchedule id={self.id} room_id={self.room_id} kind={self.kind!r}>"
 
 
 class Appointment(db.Model, TimestampMixin):

@@ -2,12 +2,22 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime, time, timedelta
 from http import HTTPStatus
 from typing import Any
 import unittest
 
 from backend.app import create_app
-from backend.app.models import Clinic, Constraint, Doctor, Room, User
+from backend.app.models import (
+    Clinic,
+    Constraint,
+    Doctor,
+    DoctorSchedule,
+    Room,
+    RoomSchedule,
+    User,
+)
+from backend.app.services.scheduler_service import find_candidate_slots_for_request
 from backend.extensions import bcrypt, db
 
 
@@ -147,6 +157,8 @@ class ClinicOnboardingTestCase(unittest.TestCase):
         data = response.get_json()
         assert data is not None
         self.assertIn("clinic_id", data)
+        self.assertTrue(data.get("doctors"))
+        self.assertTrue(data.get("rooms"))
 
         clinic = Clinic.query.get(data["clinic_id"])
         assert clinic is not None
@@ -193,6 +205,185 @@ class ClinicOnboardingTestCase(unittest.TestCase):
         self.assertEqual(len(returned["rooms"]), 2)
         self.assertEqual(len(returned["equipment"]), 2)
         self.assertEqual(len(returned["schedule_rules"]["operating_hours"]), 2)
+
+    def test_availability_endpoint_persists_schedules(self) -> None:
+        token = self._login(self.admin.email, self.admin_password)
+
+        onboarding_payload = {
+            "clinic": {"name": "Harbor Animal Clinic"},
+            "doctors": [
+                {"display_name": "Dr. Harper"},
+            ],
+            "rooms": [
+                {"name": "Exam Room"},
+            ],
+            "equipment": [],
+            "schedule_rules": {"operating_hours": []},
+        }
+
+        onboarding_response = self._submit_onboarding(token, onboarding_payload)
+        self.assertEqual(
+            onboarding_response.status_code,
+            HTTPStatus.CREATED,
+            onboarding_response.get_data(as_text=True),
+        )
+        onboarding_data = onboarding_response.get_json()
+        assert onboarding_data is not None
+
+        availability_payload = {
+            "doctor_schedules": [
+                {
+                    "doctor_name": "Dr. Harper",
+                    "day": "Monday",
+                    "start": "09:00",
+                    "end": "12:00",
+                    "kind": "availability",
+                    "label": "Morning Shift",
+                },
+                {
+                    "doctor_name": "Dr. Harper",
+                    "day": "Monday",
+                    "start": "12:00",
+                    "end": "13:00",
+                    "kind": "break",
+                },
+            ],
+            "room_schedules": [
+                {
+                    "room_name": "Exam Room",
+                    "day": "Monday",
+                    "start": "08:00",
+                    "end": "17:00",
+                    "kind": "availability",
+                }
+            ],
+        }
+
+        availability_response = self.client.post(
+            "/api/clinic/availability",
+            json=availability_payload,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(
+            availability_response.status_code,
+            HTTPStatus.CREATED,
+            availability_response.get_data(as_text=True),
+        )
+
+        clinic = Clinic.query.get(onboarding_data["clinic_id"])
+        assert clinic is not None
+
+        doctor_schedules = DoctorSchedule.query.filter_by(clinic_id=clinic.id).all()
+        self.assertEqual(len(doctor_schedules), 2)
+        kinds = {schedule.kind for schedule in doctor_schedules}
+        self.assertIn("availability", kinds)
+        self.assertIn("blackout", kinds)
+        for schedule in doctor_schedules:
+            self.assertEqual(schedule.weekday, 0)
+            self.assertEqual(schedule.start_time.minute, 0)
+            self.assertEqual(schedule.start_date.weekday(), schedule.weekday)
+
+        room_schedules = RoomSchedule.query.filter_by(clinic_id=clinic.id).all()
+        self.assertEqual(len(room_schedules), 1)
+        self.assertEqual(room_schedules[0].weekday, 0)
+        self.assertEqual(room_schedules[0].kind, "availability")
+
+    def test_scheduler_honors_saved_availability(self) -> None:
+        token = self._login(self.admin.email, self.admin_password)
+
+        onboarding_payload = {
+            "clinic": {"name": "Lakeside Veterinary"},
+            "doctors": [
+                {"display_name": "Dr. Lang"},
+            ],
+            "rooms": [
+                {"name": "Room A"},
+            ],
+            "equipment": [],
+            "schedule_rules": {"operating_hours": []},
+        }
+
+        onboarding_response = self._submit_onboarding(token, onboarding_payload)
+        self.assertEqual(
+            onboarding_response.status_code,
+            HTTPStatus.CREATED,
+            onboarding_response.get_data(as_text=True),
+        )
+        onboarding_data = onboarding_response.get_json()
+        assert onboarding_data is not None
+        clinic_id = onboarding_data["clinic_id"]
+
+        availability_payload = {
+            "doctor_schedules": [
+                {
+                    "doctor_name": "Dr. Lang",
+                    "day": "Monday",
+                    "start": "09:00",
+                    "end": "13:00",
+                    "kind": "availability",
+                },
+                {
+                    "doctor_name": "Dr. Lang",
+                    "day": "Monday",
+                    "start": "11:00",
+                    "end": "12:00",
+                    "kind": "break",
+                },
+            ],
+            "room_schedules": [
+                {
+                    "room_name": "Room A",
+                    "day": "Monday",
+                    "start": "09:00",
+                    "end": "17:00",
+                    "kind": "availability",
+                },
+                {
+                    "room_name": "Room A",
+                    "day": "Monday",
+                    "start": "10:00",
+                    "end": "11:00",
+                    "kind": "break",
+                },
+            ],
+        }
+
+        availability_response = self.client.post(
+            "/api/clinic/availability",
+            json=availability_payload,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(availability_response.status_code, HTTPStatus.CREATED)
+
+        # Determine the upcoming Monday that matches the generated schedules.
+        today = date.today()
+        days_ahead = (0 - today.weekday()) % 7
+        appointment_date = today + timedelta(days=days_ahead)
+
+        start_time = datetime.combine(appointment_date, time(9, 0))
+        end_time = datetime.combine(appointment_date, time(14, 0))
+
+        request_payload = {
+            "start": start_time.isoformat(),
+            "end": end_time.isoformat(),
+            "duration_minutes": 60,
+            "granularity_minutes": 60,
+        }
+
+        slots = find_candidate_slots_for_request(clinic_id, request_payload)
+        self.assertTrue(slots, "Expected available slots from scheduler service.")
+
+        slot_starts = [datetime.fromisoformat(slot["start_time"]) for slot in slots]
+        expected_starts = {
+            datetime.combine(appointment_date, time(9, 0)),
+            datetime.combine(appointment_date, time(12, 0)),
+        }
+
+        self.assertEqual(set(slot_starts), expected_starts)
+        for slot in slots:
+            start = datetime.fromisoformat(slot["start_time"])
+            self.assertNotEqual(start.hour, 10, "Room break should block 10:00 start times")
+            self.assertNotEqual(start.hour, 11, "Doctor break should block 11:00 start times")
 
     def test_requires_admin_role(self) -> None:
         token = self._login(self.staff.email, self.staff_password)

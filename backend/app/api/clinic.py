@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from http import HTTPStatus
 from typing import Any
 
@@ -10,7 +10,15 @@ from flask import Blueprint, jsonify, request
 from flask.typing import ResponseReturnValue
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from backend.app.models import Clinic, Constraint, Doctor, Room, User
+from backend.app.models import (
+    Clinic,
+    Constraint,
+    Doctor,
+    DoctorSchedule,
+    Room,
+    RoomSchedule,
+    User,
+)
 from backend.extensions import db
 
 clinic_bp = Blueprint("clinic", __name__)
@@ -23,6 +31,25 @@ _RRULE_DAY_MAP = {
     "friday": "FR",
     "saturday": "SA",
     "sunday": "SU",
+}
+
+_DAY_INDEX = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
+
+_SCHEDULE_KIND_MAP = {
+    "availability": "availability",
+    "available": "availability",
+    "shift": "availability",
+    "break": "blackout",
+    "blackout": "blackout",
+    "unavailable": "blackout",
 }
 
 
@@ -145,6 +172,12 @@ def submit_onboarding() -> ResponseReturnValue:
 
     # Refresh related entities to avoid duplicates on repeated onboarding submissions.
     if clinic.id:
+        DoctorSchedule.query.filter_by(clinic_id=clinic.id).delete(
+            synchronize_session=False
+        )
+        RoomSchedule.query.filter_by(clinic_id=clinic.id).delete(
+            synchronize_session=False
+        )
         Doctor.query.filter_by(clinic_id=clinic.id).delete(synchronize_session=False)
         Room.query.filter_by(clinic_id=clinic.id).delete(synchronize_session=False)
         Constraint.query.filter_by(clinic_id=clinic.id, doctor_id=None, room_id=None).delete(
@@ -160,6 +193,7 @@ def submit_onboarding() -> ResponseReturnValue:
         db.session.rollback()
         return jsonify(message=str(exc)), HTTPStatus.BAD_REQUEST
 
+    created_doctors: list[Doctor] = []
     for doctor in doctor_entries:
         display_name = (doctor.get("display_name") or "").strip()
         if not display_name:
@@ -167,16 +201,17 @@ def submit_onboarding() -> ResponseReturnValue:
         specialty = (doctor.get("specialty") or "").strip() or None
         license_number = (doctor.get("license_number") or "").strip() or None
         biography = (doctor.get("biography") or "").strip() or None
-        db.session.add(
-            Doctor(
-                clinic_id=clinic.id,
-                display_name=display_name,
-                specialty=specialty,
-                license_number=license_number,
-                biography=biography,
-            )
+        doctor_model = Doctor(
+            clinic_id=clinic.id,
+            display_name=display_name,
+            specialty=specialty,
+            license_number=license_number,
+            biography=biography,
         )
+        db.session.add(doctor_model)
+        created_doctors.append(doctor_model)
 
+    created_rooms: list[Room] = []
     for room in room_entries:
         name = (room.get("name") or "").strip()
         if not name:
@@ -197,38 +232,57 @@ def submit_onboarding() -> ResponseReturnValue:
 
         aggregated_equipment = equipment_lookup.get(name, [])
         notes_payload = {"notes": notes_value, "equipment": aggregated_equipment}
-        db.session.add(
-            Room(
-                clinic_id=clinic.id,
-                name=name,
-                room_type=room_type,
-                capacity=capacity_int,
-                notes=json.dumps(notes_payload) if notes_payload else None,
-            )
+        room_model = Room(
+            clinic_id=clinic.id,
+            name=name,
+            room_type=room_type,
+            capacity=capacity_int,
+            notes=json.dumps(notes_payload) if notes_payload else None,
         )
+        db.session.add(room_model)
+        created_rooms.append(room_model)
 
     if unassigned_equipment:
-        db.session.add(
-            Room(
-                clinic_id=clinic.id,
-                name="General Equipment Storage",
-                room_type="storage",
-                capacity=None,
-                notes=json.dumps(
-                    {
-                        "notes": "Automatically generated for unassigned equipment.",
-                        "equipment": unassigned_equipment,
-                    }
-                ),
-            )
+        storage_room = Room(
+            clinic_id=clinic.id,
+            name="General Equipment Storage",
+            room_type="storage",
+            capacity=None,
+            notes=json.dumps(
+                {
+                    "notes": "Automatically generated for unassigned equipment.",
+                    "equipment": unassigned_equipment,
+                }
+            ),
         )
+        db.session.add(storage_room)
+        created_rooms.append(storage_room)
 
     for constraint in operating_constraints:
         db.session.add(constraint)
 
+    db.session.flush()
+
+    response_doctors = [
+        {"id": doctor.id, "display_name": doctor.display_name}
+        for doctor in sorted(created_doctors, key=lambda value: value.display_name or "")
+    ]
+    response_rooms = [
+        {"id": room.id, "name": room.name}
+        for room in sorted(created_rooms, key=lambda value: value.name or "")
+    ]
+
     db.session.commit()
 
-    return jsonify(message="Onboarding completed successfully.", clinic_id=clinic.id), HTTPStatus.CREATED
+    return (
+        jsonify(
+            message="Onboarding completed successfully.",
+            clinic_id=clinic.id,
+            doctors=response_doctors,
+            rooms=response_rooms,
+        ),
+        HTTPStatus.CREATED,
+    )
 
 
 @clinic_bp.get("/onboarding")
@@ -336,3 +390,205 @@ def retrieve_onboarding() -> ResponseReturnValue:
     }
 
     return jsonify(response_payload), HTTPStatus.OK
+
+
+def _resolve_kind(value: str | None) -> str:
+    normalized = (value or "").strip().lower()
+    if normalized in _SCHEDULE_KIND_MAP:
+        return _SCHEDULE_KIND_MAP[normalized]
+    if not normalized:
+        return "availability"
+    raise ValueError(
+        "Schedule entries must specify a kind of 'availability' or 'break'."
+    )
+
+
+def _resolve_weekday(value: str | None) -> int:
+    if value is None:
+        raise ValueError("Each schedule entry requires a day of the week.")
+    key = value.strip().lower()
+    if key not in _DAY_INDEX:
+        raise ValueError("Day must be one of Monday through Sunday.")
+    return _DAY_INDEX[key]
+
+
+def _parse_time(value: str | None, label: str) -> time:
+    if not value:
+        raise ValueError(f"{label} is required for schedule entries.")
+    try:
+        return time.fromisoformat(value)
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise ValueError(f"{label} must use HH:MM format.") from exc
+
+
+def _next_reference_date(weekday: int) -> date:
+    today = date.today()
+    delta = (weekday - today.weekday()) % 7
+    return today + timedelta(days=delta)
+
+
+def _parse_schedule_dates(entry: dict[str, Any], weekday: int) -> tuple[date, date | None]:
+    start_date_raw = entry.get("start_date")
+    end_date_raw = entry.get("end_date")
+
+    start_date_value: date
+    if start_date_raw:
+        start_date_value = date.fromisoformat(str(start_date_raw))
+    else:
+        start_date_value = _next_reference_date(weekday)
+
+    end_date_value: date | None
+    if end_date_raw:
+        end_date_value = date.fromisoformat(str(end_date_raw))
+        if end_date_value < start_date_value:
+            raise ValueError("end_date cannot precede start_date for schedule entries.")
+    else:
+        end_date_value = None
+
+    return start_date_value, end_date_value
+
+
+def _resolve_doctor_id(clinic: Clinic, entry: dict[str, Any]) -> int:
+    doctor_lookup = {doctor.id: doctor for doctor in clinic.doctors}
+    identifier = entry.get("doctor_id")
+    if identifier not in (None, ""):
+        try:
+            doctor_id = int(identifier)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("doctor_id must be an integer.") from exc
+        if doctor_id not in doctor_lookup:
+            raise ValueError("doctor_id must reference an existing doctor in the clinic.")
+        return doctor_id
+
+    doctor_name = (entry.get("doctor_name") or "").strip()
+    if doctor_name:
+        for doctor in clinic.doctors:
+            if (doctor.display_name or "").strip().lower() == doctor_name.lower():
+                return doctor.id
+        raise ValueError(f"Doctor '{doctor_name}' does not exist in the clinic.")
+
+    raise ValueError("Each doctor schedule requires a doctor_id or doctor_name.")
+
+
+def _resolve_room_id(clinic: Clinic, entry: dict[str, Any]) -> int:
+    room_lookup = {room.id: room for room in clinic.rooms}
+    identifier = entry.get("room_id")
+    if identifier not in (None, ""):
+        try:
+            room_id = int(identifier)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("room_id must be an integer.") from exc
+        if room_id not in room_lookup:
+            raise ValueError("room_id must reference an existing room in the clinic.")
+        return room_id
+
+    room_name = (entry.get("room_name") or "").strip()
+    if room_name:
+        for room in clinic.rooms:
+            if (room.name or "").strip().lower() == room_name.lower():
+                return room.id
+        raise ValueError(f"Room '{room_name}' does not exist in the clinic.")
+
+    raise ValueError("Each room schedule requires a room_id or room_name.")
+
+
+def _create_doctor_schedule_models(
+    clinic: Clinic, entries: list[dict[str, Any]]
+) -> list[DoctorSchedule]:
+    schedules: list[DoctorSchedule] = []
+    for entry in entries:
+        weekday = _resolve_weekday(entry.get("day"))
+        start_value = _parse_time(entry.get("start"), "start")
+        end_value = _parse_time(entry.get("end"), "end")
+        if end_value <= start_value:
+            raise ValueError("Schedule end time must be after the start time.")
+        start_date_value, end_date_value = _parse_schedule_dates(entry, weekday)
+        label = (entry.get("label") or "").strip() or None
+        notes = (entry.get("notes") or "").strip() or None
+        kind = _resolve_kind(entry.get("kind"))
+        doctor_id = _resolve_doctor_id(clinic, entry)
+        schedules.append(
+            DoctorSchedule(
+                clinic_id=clinic.id,
+                doctor_id=doctor_id,
+                label=label,
+                kind=kind,
+                weekday=weekday,
+                start_time=start_value,
+                end_time=end_value,
+                start_date=start_date_value,
+                end_date=end_date_value,
+                notes=notes,
+            )
+        )
+    return schedules
+
+
+def _create_room_schedule_models(
+    clinic: Clinic, entries: list[dict[str, Any]]
+) -> list[RoomSchedule]:
+    schedules: list[RoomSchedule] = []
+    for entry in entries:
+        weekday = _resolve_weekday(entry.get("day"))
+        start_value = _parse_time(entry.get("start"), "start")
+        end_value = _parse_time(entry.get("end"), "end")
+        if end_value <= start_value:
+            raise ValueError("Schedule end time must be after the start time.")
+        start_date_value, end_date_value = _parse_schedule_dates(entry, weekday)
+        label = (entry.get("label") or "").strip() or None
+        notes = (entry.get("notes") or "").strip() or None
+        kind = _resolve_kind(entry.get("kind"))
+        room_id = _resolve_room_id(clinic, entry)
+        schedules.append(
+            RoomSchedule(
+                clinic_id=clinic.id,
+                room_id=room_id,
+                label=label,
+                kind=kind,
+                weekday=weekday,
+                start_time=start_value,
+                end_time=end_value,
+                start_date=start_date_value,
+                end_date=end_date_value,
+                notes=notes,
+            )
+        )
+    return schedules
+
+
+@clinic_bp.post("/availability")
+@jwt_required()
+def update_clinic_availability() -> ResponseReturnValue:
+    """Persist doctor and room schedules for the administrator's clinic."""
+
+    admin = _current_admin()
+    if not admin:
+        return (
+            jsonify(message="Administrator privileges are required."),
+            HTTPStatus.FORBIDDEN,
+        )
+
+    clinic = Clinic.query.get(admin.clinic_id) if admin.clinic_id else None
+    if not clinic:
+        return jsonify(message="Clinic has not completed onboarding."), HTTPStatus.BAD_REQUEST
+
+    payload = request.get_json(silent=True) or {}
+    doctor_entries: list[dict[str, Any]] = payload.get("doctor_schedules") or []
+    room_entries: list[dict[str, Any]] = payload.get("room_schedules") or []
+
+    try:
+        doctor_models = _create_doctor_schedule_models(clinic, doctor_entries)
+        room_models = _create_room_schedule_models(clinic, room_entries)
+    except ValueError as exc:
+        db.session.rollback()
+        return jsonify(message=str(exc)), HTTPStatus.BAD_REQUEST
+
+    DoctorSchedule.query.filter_by(clinic_id=clinic.id).delete(synchronize_session=False)
+    RoomSchedule.query.filter_by(clinic_id=clinic.id).delete(synchronize_session=False)
+
+    for model in doctor_models + room_models:
+        db.session.add(model)
+
+    db.session.commit()
+
+    return jsonify(message="Availability updated successfully."), HTTPStatus.CREATED

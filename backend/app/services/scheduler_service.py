@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import logging
 from typing import Any, Iterable
 
@@ -16,7 +16,14 @@ from ai.models.constraint_model import (
     TimeWindow,
     find_feasible_slots,
 )
-from backend.app.models import Clinic, Constraint, Doctor, Room
+from backend.app.models import (
+    Clinic,
+    Constraint,
+    Doctor,
+    DoctorSchedule,
+    Room,
+    RoomSchedule,
+)
 from backend.app.services.llm_client import (
     LLMCommunicationError,
     LLMRankingError,
@@ -70,11 +77,17 @@ def find_candidate_slots_for_request(
     doctors = [doctor for doctor in clinic.doctors if doctor.is_active]
     rooms = [room for room in clinic.rooms if room.is_active]
     constraints = Constraint.query.filter_by(clinic_id=clinic_id).all()
+    doctor_schedules = DoctorSchedule.query.filter_by(clinic_id=clinic_id).all()
+    room_schedules = RoomSchedule.query.filter_by(clinic_id=clinic_id).all()
 
     appointment_request = _build_request(payload)
     clinic_schedule = _build_clinic_schedule(payload, constraints)
-    doctor_availability = _build_doctor_availability(doctors, constraints)
-    room_availability = _build_room_availability(rooms, constraints)
+    doctor_availability = _build_doctor_availability(
+        doctors, constraints, doctor_schedules, appointment_request
+    )
+    room_availability = _build_room_availability(
+        rooms, constraints, room_schedules, appointment_request
+    )
 
     slots = find_feasible_slots(
         doctor_availability, room_availability, appointment_request, clinic_schedule
@@ -245,7 +258,7 @@ def _build_request(payload: dict[str, Any]) -> AppointmentRequest:
     room_ids = _parse_int_set(payload.get("room_ids"))
 
     required_specialties = _parse_str_set(payload.get("required_specialties"))
-    required_equipment = _parse_str_set(payload.get("required_equipment"))
+    required_equipment = _parse_str_set(payload.get("required_equipment")) or set()
     required_room_type = payload.get("required_room_type")
 
     return AppointmentRequest(
@@ -290,54 +303,137 @@ def _build_clinic_schedule(
 
 
 def _build_doctor_availability(
-    doctors: Iterable[Doctor], constraints: Iterable[Constraint]
+    doctors: Iterable[Doctor],
+    constraints: Iterable[Constraint],
+    schedules: Iterable[DoctorSchedule],
+    request: AppointmentRequest,
 ) -> list[DoctorAvailability]:
     """Aggregate availability information for doctors."""
 
-    blocks: dict[int, list[TimeWindow]] = defaultdict(list)
+    constraint_blocks: dict[int, list[TimeWindow]] = defaultdict(list)
     for constraint in constraints:
         if constraint.doctor_id is None:
             continue
-        blocks[constraint.doctor_id].append(
+        constraint_blocks[constraint.doctor_id].append(
             TimeWindow(start=constraint.start_time, end=constraint.end_time)
         )
+
+    schedule_availability: dict[int, list[TimeWindow]] = defaultdict(list)
+    schedule_blocks: dict[int, list[TimeWindow]] = defaultdict(list)
+    for schedule in schedules:
+        if not schedule.is_active or schedule.weekday is None:
+            continue
+        windows = _expand_schedule_windows(schedule, request.start, request.end)
+        if not windows:
+            continue
+        if schedule.kind == "availability":
+            schedule_availability[schedule.doctor_id].extend(windows)
+        else:
+            schedule_blocks[schedule.doctor_id].extend(windows)
 
     availabilities: list[DoctorAvailability] = []
     for doctor in doctors:
         specialties = {doctor.specialty} if doctor.specialty else set()
+        unavailable = (
+            constraint_blocks.get(doctor.id, []) + schedule_blocks.get(doctor.id, [])
+        )
+        available = schedule_availability.get(doctor.id, [])
         availabilities.append(
             DoctorAvailability(
                 id=doctor.id,
                 specialties=specialties,
-                unavailable_windows=blocks.get(doctor.id, ()),
+                available_windows=available,
+                unavailable_windows=unavailable,
             )
         )
     return availabilities
 
 
 def _build_room_availability(
-    rooms: Iterable[Room], constraints: Iterable[Constraint]
+    rooms: Iterable[Room],
+    constraints: Iterable[Constraint],
+    schedules: Iterable[RoomSchedule],
+    request: AppointmentRequest,
 ) -> list[RoomAvailability]:
     """Aggregate availability information for rooms."""
 
-    blocks: dict[int, list[TimeWindow]] = defaultdict(list)
+    constraint_blocks: dict[int, list[TimeWindow]] = defaultdict(list)
     for constraint in constraints:
         if constraint.room_id is None:
             continue
-        blocks[constraint.room_id].append(
+        constraint_blocks[constraint.room_id].append(
             TimeWindow(start=constraint.start_time, end=constraint.end_time)
         )
 
+    schedule_availability: dict[int, list[TimeWindow]] = defaultdict(list)
+    schedule_blocks: dict[int, list[TimeWindow]] = defaultdict(list)
+    for schedule in schedules:
+        if not schedule.is_active or schedule.weekday is None:
+            continue
+        windows = _expand_schedule_windows(schedule, request.start, request.end)
+        if not windows:
+            continue
+        if schedule.kind == "availability":
+            schedule_availability[schedule.room_id].extend(windows)
+        else:
+            schedule_blocks[schedule.room_id].extend(windows)
+
     availabilities: list[RoomAvailability] = []
     for room in rooms:
+        unavailable = (
+            constraint_blocks.get(room.id, []) + schedule_blocks.get(room.id, [])
+        )
+        available = schedule_availability.get(room.id, [])
         availabilities.append(
             RoomAvailability(
                 id=room.id,
                 room_type=room.room_type,
-                unavailable_windows=blocks.get(room.id, ()),
+                unavailable_windows=unavailable,
+                available_windows=available,
             )
         )
     return availabilities
+
+
+def _expand_schedule_windows(
+    schedule: DoctorSchedule | RoomSchedule, start: datetime, end: datetime
+) -> list[TimeWindow]:
+    """Generate concrete time windows for the given request interval."""
+
+    if schedule.weekday is None:
+        return []
+
+    start_boundary = max(start.date(), schedule.start_date or start.date())
+    end_boundary_date = schedule.end_date or end.date()
+    if end_boundary_date < start_boundary:
+        return []
+
+    first_occurrence = _align_to_weekday(start_boundary, schedule.weekday)
+    if first_occurrence is None:
+        return []
+
+    limit_date = min(end_boundary_date, end.date())
+    windows: list[TimeWindow] = []
+    current_date = first_occurrence
+    while current_date <= limit_date:
+        window_start = datetime.combine(current_date, schedule.start_time)
+        window_end = datetime.combine(current_date, schedule.end_time)
+        if window_end <= window_start:
+            break
+        if window_end > start and window_start < end:
+            windows.append(TimeWindow(start=window_start, end=window_end))
+        current_date += timedelta(days=7)
+
+    return windows
+
+
+def _align_to_weekday(start_date: date, target_weekday: int) -> date | None:
+    """Return the first date on or after start_date matching the weekday."""
+
+    if not 0 <= target_weekday <= 6:
+        return None
+    delta = (target_weekday - start_date.weekday()) % 7
+    return start_date + timedelta(days=delta)
 
 
 def _parse_datetime(value: Any) -> datetime:

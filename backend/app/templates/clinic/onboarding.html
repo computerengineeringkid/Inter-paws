@@ -43,6 +43,10 @@
               <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs">5</span>
               Operating Hours
             </li>
+            <li class="flex items-center gap-2 rounded-lg border border-slate-200 p-3" data-step-index="5">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs">6</span>
+              Availability
+            </li>
           </ol>
         </div>
 
@@ -202,6 +206,55 @@
                 When you submit, we will securely send the onboarding details to the backend API. Make
                 sure all steps are complete before finalizing.
               </p>
+            </div>
+          </div>
+
+          <div class="hidden rounded-xl border border-slate-200 p-6" data-step="5">
+            <div class="space-y-8">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-xl font-semibold text-slate-900">Doctor Schedules</h2>
+                  <p class="mt-1 text-sm text-slate-500">
+                    Capture recurring shifts and breaks for each doctor.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="addDoctorSchedule"
+                  class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 focus:outline-none focus:ring focus:ring-sky-200"
+                >
+                  <span class="text-lg leading-none">＋</span>
+                  Add Entry
+                </button>
+              </div>
+
+              <div id="doctorScheduleList" class="space-y-4"></div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-xl font-semibold text-slate-900">Room Schedules</h2>
+                  <p class="mt-1 text-sm text-slate-500">
+                    Specify when rooms are available or blocked.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="addRoomSchedule"
+                  class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-sky-500 focus:outline-none focus:ring focus:ring-sky-200"
+                >
+                  <span class="text-lg leading-none">＋</span>
+                  Add Entry
+                </button>
+              </div>
+
+              <div id="roomScheduleList" class="space-y-4"></div>
+
+              <div class="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+                <p>
+                  Availability entries use a weekly cadence. Select <span class="font-semibold">Availability</span> for
+                  working shifts and <span class="font-semibold">Break</span> for blackout periods.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -446,6 +499,174 @@
       </div>
     </template>
 
+    <template id="doctorScheduleTemplate">
+      <div class="rounded-xl border border-slate-200 p-4" data-doctor-schedule-row>
+        <div class="flex flex-col gap-4 sm:grid sm:grid-cols-6 sm:items-end sm:gap-4">
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Doctor<span class="text-rose-500">*</span></span>
+            <select
+              name="doctor_schedule_target"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            ></select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Day<span class="text-rose-500">*</span></span>
+            <select
+              name="doctor_schedule_day"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            >
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Start<span class="text-rose-500">*</span></span>
+            <input
+              type="time"
+              name="doctor_schedule_start"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              value="09:00"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">End<span class="text-rose-500">*</span></span>
+            <input
+              type="time"
+              name="doctor_schedule_end"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              value="17:00"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Type</span>
+            <select
+              name="doctor_schedule_kind"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            >
+              <option value="availability">Availability</option>
+              <option value="break">Break</option>
+            </select>
+          </label>
+          <div class="flex items-center justify-between gap-3 sm:col-span-1">
+            <label class="flex flex-col gap-1 w-full">
+              <span class="text-sm font-medium text-slate-600">Label</span>
+              <input
+                type="text"
+                name="doctor_schedule_label"
+                class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                placeholder="Weekday Shift"
+              />
+            </label>
+            <button
+              type="button"
+              class="mt-6 inline-flex items-center justify-center self-start rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-50"
+              data-remove-row
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+        <label class="mt-4 flex flex-col gap-1">
+          <span class="text-sm font-medium text-slate-600">Notes</span>
+          <input
+            type="text"
+            name="doctor_schedule_notes"
+            class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            placeholder="Optional context"
+          />
+        </label>
+      </div>
+    </template>
+
+    <template id="roomScheduleTemplate">
+      <div class="rounded-xl border border-slate-200 p-4" data-room-schedule-row>
+        <div class="flex flex-col gap-4 sm:grid sm:grid-cols-6 sm:items-end sm:gap-4">
+          <label class="sm:col-span-2 flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Room<span class="text-rose-500">*</span></span>
+            <select
+              name="room_schedule_target"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            ></select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Day<span class="text-rose-500">*</span></span>
+            <select
+              name="room_schedule_day"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            >
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Start<span class="text-rose-500">*</span></span>
+            <input
+              type="time"
+              name="room_schedule_start"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              value="09:00"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">End<span class="text-rose-500">*</span></span>
+            <input
+              type="time"
+              name="room_schedule_end"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+              value="17:00"
+            />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-sm font-medium text-slate-600">Type</span>
+            <select
+              name="room_schedule_kind"
+              class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            >
+              <option value="availability">Availability</option>
+              <option value="break">Break</option>
+            </select>
+          </label>
+          <div class="flex items-center justify-between gap-3 sm:col-span-1">
+            <label class="flex flex-col gap-1 w-full">
+              <span class="text-sm font-medium text-slate-600">Label</span>
+              <input
+                type="text"
+                name="room_schedule_label"
+                class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+                placeholder="Morning Shift"
+              />
+            </label>
+            <button
+              type="button"
+              class="mt-6 inline-flex items-center justify-center self-start rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-500 hover:bg-rose-50"
+              data-remove-row
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+        <label class="mt-4 flex flex-col gap-1">
+          <span class="text-sm font-medium text-slate-600">Notes</span>
+          <input
+            type="text"
+            name="room_schedule_notes"
+            class="rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring focus:ring-sky-100"
+            placeholder="Cleaning break"
+          />
+        </label>
+      </div>
+    </template>
+
     <script>
       const form = document.getElementById("onboardingForm");
       const steps = Array.from(form.querySelectorAll('[data-step]'));
@@ -491,32 +712,115 @@
         return template.content.firstElementChild.cloneNode(true);
       };
 
-      const initDynamicList = (containerId, templateId) => {
+      const getDoctorNames = () =>
+        Array.from(document.querySelectorAll('[data-doctor-row] input[name="doctor_name"]'))
+          .map((input) => input.value?.trim())
+          .filter((value) => value);
+
+      const getRoomNames = () =>
+        Array.from(document.querySelectorAll('[data-room-row] input[name="room_name"]'))
+          .map((input) => input.value?.trim())
+          .filter((value) => value);
+
+      const populateSelectOptions = (select, values) => {
+        const previous = select.value;
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = values.length ? 'Select…' : 'No options available';
+        select.appendChild(placeholder);
+        values.forEach((value) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+        if (values.includes(previous)) {
+          select.value = previous;
+        }
+      };
+
+      const refreshDoctorScheduleOptions = () => {
+        const names = getDoctorNames();
+        document
+          .querySelectorAll('select[name="doctor_schedule_target"]')
+          .forEach((select) => populateSelectOptions(select, names));
+      };
+
+      const refreshRoomScheduleOptions = () => {
+        const names = getRoomNames();
+        document
+          .querySelectorAll('select[name="room_schedule_target"]')
+          .forEach((select) => populateSelectOptions(select, names));
+      };
+
+      const initDynamicList = (containerId, templateId, options = {}) => {
         const container = document.getElementById(containerId);
         const addButtonId = {
           doctorsList: 'addDoctor',
           roomsList: 'addRoom',
           equipmentList: 'addEquipment',
           scheduleList: 'addSchedule',
+          doctorScheduleList: 'addDoctorSchedule',
+          roomScheduleList: 'addRoomSchedule',
         }[containerId];
         const addButton = document.getElementById(addButtonId);
+        const { onAdd, onRemove, startEmpty } = options;
 
         const addRow = () => {
           const row = cloneTemplate(templateId);
           row.querySelectorAll('[data-remove-row]').forEach((btn) => {
             btn.addEventListener('click', () => row.remove());
+            if (typeof onRemove === 'function') {
+              btn.addEventListener('click', onRemove);
+            }
           });
           container.appendChild(row);
+          if (typeof onAdd === 'function') {
+            onAdd(row);
+          }
         };
 
         addButton.addEventListener('click', addRow);
-        addRow();
+        if (!startEmpty) {
+          addRow();
+        }
+        return { addRow };
       };
 
-      initDynamicList('doctorsList', 'doctorTemplate');
-      initDynamicList('roomsList', 'roomTemplate');
+      initDynamicList('doctorsList', 'doctorTemplate', {
+        onAdd: (row) => {
+          row
+            .querySelectorAll('input[name="doctor_name"]')
+            .forEach((input) => input.addEventListener('input', refreshDoctorScheduleOptions));
+          refreshDoctorScheduleOptions();
+        },
+        onRemove: refreshDoctorScheduleOptions,
+      });
+      initDynamicList('roomsList', 'roomTemplate', {
+        onAdd: (row) => {
+          row
+            .querySelectorAll('input[name="room_name"]')
+            .forEach((input) => input.addEventListener('input', refreshRoomScheduleOptions));
+          refreshRoomScheduleOptions();
+        },
+        onRemove: refreshRoomScheduleOptions,
+      });
       initDynamicList('equipmentList', 'equipmentTemplate');
       initDynamicList('scheduleList', 'scheduleTemplate');
+      initDynamicList('doctorScheduleList', 'doctorScheduleTemplate', {
+        onAdd: refreshDoctorScheduleOptions,
+        onRemove: refreshDoctorScheduleOptions,
+        startEmpty: true,
+      });
+      initDynamicList('roomScheduleList', 'roomScheduleTemplate', {
+        onAdd: refreshRoomScheduleOptions,
+        onRemove: refreshRoomScheduleOptions,
+        startEmpty: true,
+      });
+
+      refreshDoctorScheduleOptions();
+      refreshRoomScheduleOptions();
 
       const extractValue = (input) => input?.value?.trim();
 
@@ -550,6 +854,46 @@
           end: extractValue(row.querySelector('input[name="schedule_end"]')),
           notes: extractValue(row.querySelector('input[name="schedule_notes"]')),
         })).filter((rule) => rule.day && rule.start && rule.end);
+
+      const collectDoctorSchedules = () =>
+        Array.from(document.querySelectorAll('[data-doctor-schedule-row]'))
+          .map((row) => ({
+            doctor_name: extractValue(row.querySelector('select[name="doctor_schedule_target"]')),
+            day: extractValue(row.querySelector('select[name="doctor_schedule_day"]')),
+            start: extractValue(row.querySelector('input[name="doctor_schedule_start"]')),
+            end: extractValue(row.querySelector('input[name="doctor_schedule_end"]')),
+            kind: extractValue(row.querySelector('select[name="doctor_schedule_kind"]')) || 'availability',
+            label: extractValue(row.querySelector('input[name="doctor_schedule_label"]')),
+            notes: extractValue(row.querySelector('input[name="doctor_schedule_notes"]')),
+          }))
+          .filter((entry) => entry.doctor_name && entry.day && entry.start && entry.end);
+
+      const collectRoomSchedules = () =>
+        Array.from(document.querySelectorAll('[data-room-schedule-row]'))
+          .map((row) => ({
+            room_name: extractValue(row.querySelector('select[name="room_schedule_target"]')),
+            day: extractValue(row.querySelector('select[name="room_schedule_day"]')),
+            start: extractValue(row.querySelector('input[name="room_schedule_start"]')),
+            end: extractValue(row.querySelector('input[name="room_schedule_end"]')),
+            kind: extractValue(row.querySelector('select[name="room_schedule_kind"]')) || 'availability',
+            label: extractValue(row.querySelector('input[name="room_schedule_label"]')),
+            notes: extractValue(row.querySelector('input[name="room_schedule_notes"]')),
+          }))
+          .filter((entry) => entry.room_name && entry.day && entry.start && entry.end);
+
+      const attachIdentifiers = (entries, records, recordLabelKey, entryLabelKey, idKey) => {
+        const lookup = new Map(
+          (records || []).map((record) => [
+            (record[recordLabelKey] || '').toString().trim().toLowerCase(),
+            record.id,
+          ]),
+        );
+        return entries.map((entry) => {
+          const normalized = (entry[entryLabelKey] || '').toString().trim().toLowerCase();
+          const identifier = lookup.get(normalized);
+          return identifier ? { ...entry, [idKey]: identifier } : entry;
+        });
+      };
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -606,7 +950,50 @@
             throw new Error(data.message || 'Unable to complete onboarding.');
           }
 
-          feedback.textContent = data.message || 'Onboarding completed successfully!';
+          let successMessage = data.message || 'Onboarding completed successfully!';
+
+          const doctorSchedules = collectDoctorSchedules();
+          const roomSchedules = collectRoomSchedules();
+
+          if ((doctorSchedules.length || roomSchedules.length) && data.clinic_id) {
+            const mappedDoctorSchedules = attachIdentifiers(
+              doctorSchedules,
+              data.doctors || [],
+              'display_name',
+              'doctor_name',
+              'doctor_id',
+            );
+            const mappedRoomSchedules = attachIdentifiers(
+              roomSchedules,
+              data.rooms || [],
+              'name',
+              'room_name',
+              'room_id',
+            );
+
+            const availabilityResponse = await fetch('/api/clinic/availability', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                doctor_schedules: mappedDoctorSchedules,
+                room_schedules: mappedRoomSchedules,
+              }),
+            });
+
+            const availabilityData = await availabilityResponse.json().catch(() => ({}));
+            if (!availabilityResponse.ok) {
+              throw new Error(availabilityData.message || 'Unable to save availability details.');
+            }
+
+            if (availabilityData.message) {
+              successMessage = `${successMessage} ${availabilityData.message}`.trim();
+            }
+          }
+
+          feedback.textContent = successMessage;
           feedback.className = 'text-sm font-semibold text-emerald-600';
         } catch (error) {
           feedback.textContent = error.message;

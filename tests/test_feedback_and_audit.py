@@ -105,6 +105,9 @@ class FeedbackAuditTestCase(unittest.TestCase):
                     "end_time": end_time.isoformat(),
                 },
                 "reason": "Wellness exam",
+                "owner_name": "Pet Owner",
+                "owner_email": "owner@example.com",
+                "pet_name": "Fido",
             },
             headers={"Authorization": f"Bearer {token}"},
         )
