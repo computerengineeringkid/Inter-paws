@@ -16,8 +16,11 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    entrypoint: ["/bin/sh", "-c"]
-    command: "ollama pull qwen2.5:1.5b && exec ollama serve"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        ollama pull qwen2.5:1.5b && exec ollama serve
 
   web:
     build:
