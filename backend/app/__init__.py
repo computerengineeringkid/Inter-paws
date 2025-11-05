@@ -6,6 +6,7 @@ from flask_cors import CORS
 
 from backend.config import get_config
 from backend.app.middleware import register_audit_middleware
+from backend.app.models import User
 from backend.extensions import bcrypt, db, jwt, migrate
 
 
@@ -18,6 +19,10 @@ def create_app(config_name: str | None = None) -> Flask:
 
     register_extensions(app)
     register_blueprints(app)
+
+    if app.config.get("DEBUG"):
+        _seed_dev_admin(app)
+
     register_audit_middleware(app)
 
     CORS(app)
@@ -41,3 +46,19 @@ def register_blueprints(app: Flask) -> None:
 
     app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(frontend_bp)
+
+
+def _seed_dev_admin(app: Flask) -> None:
+    """Seed a default admin user for development."""
+    with app.app_context():
+        existing_admin = User.query.filter_by(email="admin@example.com").first()
+        if not existing_admin:
+            password_hash = bcrypt.generate_password_hash("admin").decode("utf-8")
+            dev_admin = User(
+                email="admin@example.com",
+                password_hash=password_hash,
+                role="admin",
+                full_name="Dev Admin",
+            )
+            db.session.add(dev_admin)
+            db.session.commit()

@@ -35,6 +35,17 @@ function App() {
         }
       />
       <Route path="/clinic/login" element={<ClientLoginPage mode="clinic" />} />
+      
+      {/* THIS IS THE FIX: Added a new route for "/onboarding" */}
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute fallback="/clinic/login" requireAdmin>
+            <ClinicOnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+      
       <Route
         path="/clinic/onboarding"
         element={
