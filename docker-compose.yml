@@ -1,46 +1,42 @@
 services:
   db:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    image: postgres:15
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=interpaws
+      - POSTGRES_USER=interpaws
+      - POSTGRES_PASSWORD=interpaws
+    ports:
+      - "5432:5432"
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    command: sh -c "ollama pull qwen2.5:1.5b && ollama serve"
 
   web:
     build:
       context: .
       dockerfile: infra/Dockerfile
-    restart: unless-stopped
     env_file:
       - .env
-    depends_on:
-      - db
-      - ollama
+    command: >
+      sh -c "flask db upgrade &&
+             gunicorn --bind 0.0.0.0:5000 'backend.app:create_app()'"
     ports:
       - "5000:5000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://interpaws:interpaws@db:5432/interpaws
       - OLLAMA_BASE_URL=http://ollama:11434
-    command: ["flask", "run", "--host=0.0.0.0", "--port=5000"]
-
-  ollama:
-    image: ollama/ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    command: ["/bin/sh", "-c", "ollama pull qwen2.5:1.5b && exec ollama serve"]
+    depends_on:
+      - db
+      - ollama
 
 volumes:
   postgres_data:
-    external: false
   ollama_data:
-    external: false
