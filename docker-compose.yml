@@ -16,7 +16,8 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    command: sh -c "ollama pull qwen2.5:1.5b && ollama serve"
+    entrypoint: ["/bin/sh", "-c"]
+    command: "ollama pull qwen2.5:1.5b && exec ollama serve"
 
   web:
     build:
@@ -28,7 +29,7 @@ services:
       sh -c "flask db upgrade &&
              gunicorn --bind 0.0.0.0:5000 'backend.app:create_app()'"
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       - FLASK_ENV=development
       - DATABASE_URL=postgresql://interpaws:interpaws@db:5432/interpaws
