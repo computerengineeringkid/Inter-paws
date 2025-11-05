@@ -1,15 +1,15 @@
-import { Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 
-function ClientLayout() {
+export function ClientLayout() {
   return (
     <div className="client-layout">
       <header className="top-nav">
         <div className="nav-container">
           <h1>Inter-Paws</h1>
           <nav>
-            <a href="/client/booking">Book Appointment</a>
-            <a href="/client/history">My History</a>
-            <a href="/client/login">Login</a>
+            <NavLink to="/client/booking">Book Appointment</NavLink>
+            <NavLink to="/client/history">My History</NavLink>
+            <NavLink to="/client/login">Login</NavLink>
           </nav>
         </div>
       </header>
@@ -19,5 +19,3 @@ function ClientLayout() {
     </div>
   );
 }
-
-export default ClientLayout;

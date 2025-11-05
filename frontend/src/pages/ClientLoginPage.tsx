@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, Location } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
@@ -25,7 +25,7 @@ const headings = {
   },
 };
 
-function ClientLoginPage({ mode = "client" }: ClientLoginPageProps) {
+export function ClientLoginPage({ mode = "client" }: ClientLoginPageProps) {
   const { register: formRegister, handleSubmit } = useForm<LoginForm>({
     defaultValues: { email: "", password: "" },
   });
@@ -44,15 +44,16 @@ function ClientLoginPage({ mode = "client" }: ClientLoginPageProps) {
     setSubmitting(true);
     setError(null);
     try {
-      await login(values, mode);
+      const loginUrl = mode === "clinic" ? "/api/auth/clinic/login" : undefined;
+      await login(values.email, values.password, loginUrl);
       if (mode === "clinic") {
         navigate("/clinic/dashboard");
       } else {
         const redirectPath = (location.state as { from?: Location } | undefined)?.from?.pathname;
         navigate(redirectPath ?? "/client/booking", { replace: true });
       }
-    } catch (err: any) {
-      const message = err?.data?.message ?? "Unable to sign in. Check your credentials.";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to sign in. Check your credentials.";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -91,5 +92,3 @@ function ClientLoginPage({ mode = "client" }: ClientLoginPageProps) {
     </div>
   );
 }
-
-export default ClientLoginPage;

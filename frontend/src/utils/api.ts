@@ -1,39 +1,38 @@
-export interface ApiError extends Error {
-  status?: number;
-  data?: unknown;
+// frontend/src/utils/api.ts
+
+async function handleResponse(response: Response) {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error || `HTTP error! status: ${response.status}`
+    );
+  }
+  return response.json();
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+export async function apiFetch(url: string, options: RequestInit = {}) {
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit & { token?: string | null } = {}
-): Promise<T> {
-  const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
-  if (options.token) {
-    headers.set("Authorization", `Bearer ${options.token}`);
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(url, {
     ...options,
-    headers,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
   });
+  return handleResponse(response);
+}
 
-  if (!response.ok) {
-    const error: ApiError = new Error(response.statusText);
-    error.status = response.status;
-    try {
-      error.data = await response.json();
-    } catch (err) {
-      error.data = await response.text();
-    }
-    throw error;
-  }
-
-  try {
-    return (await response.json()) as T;
-  } catch (err) {
-    return {} as T;
-  }
+export async function apiFetchWithBody(
+  url: string,
+  method: "POST" | "PUT" | "DELETE",
+  body: unknown
+) {
+  return apiFetch(url, {
+    method,
+    body: JSON.stringify(body),
+  });
 }

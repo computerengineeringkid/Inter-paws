@@ -1,6 +1,7 @@
+// frontend/src/pages/ClientBookingPage.tsx
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useMutation }_from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiFetchWithBody } from "../utils/api";
 import { RecommendedSlot, AppointmentRequest } from "../types";
 
@@ -44,7 +45,7 @@ export function ClientBookingPage() {
         room_id: slot.room_id,
         start_time: slot.start_time,
         end_time: slot.end_time,
-        pet_id: selectedPetId === "new" ? null : parseInt(selectedPetId),
+        pet_id: selectedPetId === "new" ? null : parseInt(selectedPetId, 10),
         pet_name: selectedPetId === "new" ? newPetName : undefined,
         pet_species: selectedPetId === "new" ? newPetSpecies : undefined,
         pet_breed: selectedPetId === "new" ? newPetBreed : undefined,
@@ -52,7 +53,7 @@ export function ClientBookingPage() {
         reason_for_visit: reason,
         feedback_rank_selection: feedbackRank,
       }),
-    onSuccess: ()ax => {
+    onSuccess: () => {
       setRecommendations([]);
       setSelectedSlot(null);
       // In a real app, you'd probably refetch user's pets or appointments

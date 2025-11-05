@@ -1,14 +1,14 @@
-import { Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 
-function ClinicLayout() {
+export function ClinicLayout() {
   return (
     <div className="main-layout">
       <aside className="sidebar">
         <h2>Inter-Paws Clinic</h2>
         <nav>
-          <a href="/clinic/dashboard">Dashboard</a>
-          <a href="/clinic/schedule">Schedule</a>
-          <a href="/clinic/patients">Patients</a>
+          <NavLink to="/clinic/dashboard">Dashboard</NavLink>
+          <NavLink to="/clinic/schedule">Schedule</NavLink>
+          <NavLink to="/clinic/patients">Patients</NavLink>
         </nav>
       </aside>
       <main className="content">
@@ -17,5 +17,3 @@ function ClinicLayout() {
     </div>
   );
 }
-
-export default ClinicLayout;

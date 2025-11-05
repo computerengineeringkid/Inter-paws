@@ -10,24 +10,23 @@ interface RegisterForm {
   clinic_id?: number | null;
 }
 
-function ClientRegisterPage() {
+export function ClientRegisterPage() {
   const { register: formRegister, handleSubmit } = useForm<RegisterForm>({
     defaultValues: { name: "", email: "", password: "" },
   });
-  const { register } = useAuth();
+  const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
 
-  const onSubmit = handleSubmit(async ({ name, email, password, clinic_id }) => {
+  const onSubmit = handleSubmit(async ({ name, email, password }) => {
     setSubmitting(true);
     setError(null);
     try {
-      const resolvedClinicId = Number.isFinite(clinic_id) ? clinic_id : undefined;
-      await register({ name, email, password, role: "client", clinic_id: resolvedClinicId ?? null });
+      await registerUser(email, password, name);
       navigate("/client/booking", { replace: true });
-    } catch (err: any) {
-      const message = err?.data?.message ?? "Unable to create your account.";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to create your account.";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -60,10 +59,6 @@ function ClientRegisterPage() {
               <span>Password</span>
               <input type="password" {...formRegister("password", { required: true, minLength: 6 })} placeholder="At least 6 characters" />
             </label>
-            <label>
-              <span>Clinic ID (optional)</span>
-              <input type="number" {...formRegister("clinic_id", { valueAsNumber: true })} placeholder="1" />
-            </label>
             <button className="primary" type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Creating account..." : "Create account"}
             </button>
@@ -76,5 +71,3 @@ function ClientRegisterPage() {
     </div>
   );
 }
-
-export default ClientRegisterPage;
