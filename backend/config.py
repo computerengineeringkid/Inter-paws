@@ -1,4 +1,4 @@
-"""Configuration objects for the Inter-Paws backend."""
+"""Configuration objects for the Interpaws backend."""
 from __future__ import annotations
 
 import os

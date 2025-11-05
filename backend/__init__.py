@@ -1,1 +1,1 @@
-"""Backend package for the Inter-Paws application."""
+"""Backend package for the Interpaws application."""

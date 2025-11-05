@@ -9,7 +9,7 @@ The backend sends the following prompt to the model. Variables wrapped in curly
 braces are interpolated at runtime.
 
 ```
-You are Inter-Paws, an AI assistant helping a veterinary clinic schedule
+You are Interpaws, an AI assistant helping a veterinary clinic schedule
 appointments. A pet owner has submitted a request with the following details:
 - Clinic: {clinic_name}
 - Reason for visit: {reason_for_visit}

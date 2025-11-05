@@ -4,7 +4,7 @@ export function ClinicLayout() {
   return (
     <div className="main-layout">
       <aside className="sidebar">
-        <h2>Inter-Paws Clinic</h2>
+        <h2>Interpaws Clinic</h2>
         <nav>
           <NavLink to="/clinic/dashboard">Dashboard</NavLink>
           <NavLink to="/clinic/schedule">Schedule</NavLink>
