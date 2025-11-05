@@ -35,80 +35,68 @@ function ClinicPatientPage() {
   });
 
   return (
-    <div className="main-layout">
-      <aside className="sidebar">
-        <h2>Clinic HQ</h2>
-        <a href="/clinic/dashboard">Dashboard</a>
-        <a href="/clinic/schedule">Schedule</a>
-        <a href="/clinic/patients">Patients</a>
-        <a href="/clinic/onboarding">Onboarding</a>
-        <button className="secondary" style={{ marginTop: "2rem" }} onClick={logout}>
-          Sign out
-        </button>
-      </aside>
-      <main className="content">
-        <div className="card">
-          <h1>Patient Management</h1>
-          <p style={{ color: "#4b5563" }}>
-            View all pets and their owners registered with your clinic.
-          </p>
-        </div>
-        <div className="card">
-          <h2>Pets</h2>
-          {patientsQuery.isLoading ? <p>Loading pets...</p> : null}
-          {patientsQuery.isError ? <p>Error loading pets.</p> : null}
-          {patientsQuery.data?.pets?.length ? (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Species</th>
-                  <th>Breed</th>
-                  <th>Owner</th>
-                </tr>
-              </thead>
-              <tbody>
-                {patientsQuery.data.pets.map((pet) => (
-                  <tr key={pet.id}>
-                    <td>{pet.name}</td>
-                    <td>{pet.species}</td>
-                    <td>{pet.breed ?? "—"}</td>
-                    <td>{pet.owner_name ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No pets registered yet.</p>
-          )}
-        </div>
-        <div className="card">
-          <h2>Owners</h2>
-          {patientsQuery.isLoading ? <p>Loading owners...</p> : null}
-          {patientsQuery.isError ? <p>Error loading owners.</p> : null}
-          {patientsQuery.data?.owners?.length ? (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                {patientsQuery.data.owners.map((owner) => (
-                  <tr key={owner.id}>
-                    <td>{owner.name ?? "—"}</td>
-                    <td>{owner.email}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No owners registered yet.</p>
-          )}
-        </div>
-      </main>
+    <>
+    <div className="card">
+      <h1>Patient Management</h1>
+      <p style={{ color: "#4b5563" }}>
+        View all pets and their owners registered with your clinic.
+      </p>
     </div>
+    <div className="card">
+      <h2>Pets</h2>
+      {patientsQuery.isLoading ? <p>Loading pets...</p> : null}
+      {patientsQuery.isError ? <p>Error loading pets.</p> : null}
+      {patientsQuery.data?.pets?.length ? (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Species</th>
+              <th>Breed</th>
+              <th>Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            {patientsQuery.data.pets.map((pet) => (
+              <tr key={pet.id}>
+                <td>{pet.name}</td>
+                <td>{pet.species}</td>
+                <td>{pet.breed ?? "—"}</td>
+                <td>{pet.owner_name ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>No pets registered yet.</p>
+      )}
+    </div>
+    <div className="card">
+      <h2>Owners</h2>
+      {patientsQuery.isLoading ? <p>Loading owners...</p> : null}
+      {patientsQuery.isError ? <p>Error loading owners.</p> : null}
+      {patientsQuery.data?.owners?.length ? (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {patientsQuery.data.owners.map((owner) => (
+              <tr key={owner.id}>
+                <td>{owner.name ?? "—"}</td>
+                <td>{owner.email}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>No owners registered yet.</p>
+      )}
+    </div>
+    </>
   );
 }
 

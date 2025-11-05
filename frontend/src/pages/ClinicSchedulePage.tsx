@@ -50,76 +50,64 @@ function ClinicSchedulePage() {
   const orderedDays = useMemo(() => Object.keys(grouped).sort(), [grouped]);
 
   return (
-    <div className="main-layout">
-      <aside className="sidebar">
-        <h2>Clinic HQ</h2>
-        <a href="/clinic/dashboard">Dashboard</a>
-        <a href="/clinic/schedule">Schedule</a>
-        <a href="/clinic/patients">Patients</a>
-        <a href="/clinic/onboarding">Onboarding</a>
-        <button className="secondary" style={{ marginTop: "2rem" }} onClick={logout}>
-          Sign out
-        </button>
-      </aside>
-      <main className="content">
-        <div className="card">
-          <div className="stack horizontal" style={{ justifyContent: "space-between" }}>
-            <div>
-              <h1>Live schedule board</h1>
-              <p style={{ color: "#4b5563", margin: 0 }}>
-                Monitor upcoming appointments and resource usage across your clinic.
-              </p>
-            </div>
-            <div className="stack horizontal" style={{ gap: "0.5rem" }}>
-              <nav className="tabs">
-                <button className={view === "day" ? "active" : ""} onClick={() => setView("day")}>
-                  Day
-                </button>
-                <button className={view === "week" ? "active" : ""} onClick={() => setView("week")}>
-                  Week
-                </button>
-              </nav>
-              <input type="date" value={start} onChange={(event) => setStart(event.target.value)} />
-            </div>
-          </div>
+    <>
+    <div className="card">
+      <div className="stack horizontal" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h1>Live schedule board</h1>
+          <p style={{ color: "#4b5563", margin: 0 }}>
+            Monitor upcoming appointments and resource usage across your clinic.
+          </p>
         </div>
-        <div className="card">
-          {scheduleQuery.isLoading ? <p>Loading schedule...</p> : null}
-          {scheduleQuery.isError ? (
-            <div className="alert error" role="alert">
-              Unable to load the clinic schedule. Try refreshing the page.
-            </div>
-          ) : null}
-          {orderedDays.length === 0 && !scheduleQuery.isLoading ? (
-            <p>No appointments scheduled during this window.</p>
-          ) : null}
-          <div className="schedule-grid">
-            {orderedDays.map((day) => (
-              <div key={day} className="schedule-card">
-                <h3>{format(new Date(day), "EEEE, MMM d")}</h3>
-                <ul style={{ paddingLeft: "1.25rem" }}>
-                  {grouped[day].map((appointment) => (
-                    <li key={appointment.id} style={{ marginBottom: "1rem" }}>
-                      <strong>{new Date(appointment.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
-                      <span style={{ color: "#4b5563" }}>
-                        {" "}- {appointment.pet_name ?? "Unassigned"} ({appointment.owner_name ?? "owner"})
-                      </span>
-                      <div style={{ color: "#4b5563" }}>
-                        {appointment.doctor_name ?? "Any doctor"} &middot; {appointment.room_name ?? "Room TBD"}
-                      </div>
-                      <div>
-                        <span className="badge">{appointment.status}</span>
-                        {appointment.reason ? <span style={{ marginLeft: "0.5rem" }}>{appointment.reason}</span> : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+        <div className="stack horizontal" style={{ gap: "0.5rem" }}>
+          <nav className="tabs">
+            <button className={view === "day" ? "active" : ""} onClick={() => setView("day")}>
+              Day
+            </button>
+            <button className={view === "week" ? "active" : ""} onClick={() => setView("week")}>
+              Week
+            </button>
+          </nav>
+          <input type="date" value={start} onChange={(event) => setStart(event.target.value)} />
         </div>
-      </main>
+      </div>
     </div>
+    <div className="card">
+      {scheduleQuery.isLoading ? <p>Loading schedule...</p> : null}
+      {scheduleQuery.isError ? (
+        <div className="alert error" role="alert">
+          Unable to load the clinic schedule. Try refreshing the page.
+        </div>
+      ) : null}
+      {orderedDays.length === 0 && !scheduleQuery.isLoading ? (
+        <p>No appointments scheduled during this window.</p>
+      ) : null}
+      <div className="schedule-grid">
+        {orderedDays.map((day) => (
+          <div key={day} className="schedule-card">
+            <h3>{format(new Date(day), "EEEE, MMM d")}</h3>
+            <ul style={{ paddingLeft: "1.25rem" }}>
+              {grouped[day].map((appointment) => (
+                <li key={appointment.id} style={{ marginBottom: "1rem" }}>
+                  <strong>{new Date(appointment.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
+                  <span style={{ color: "#4b5563" }}>
+                    {" "}- {appointment.pet_name ?? "Unassigned"} ({appointment.owner_name ?? "owner"})
+                  </span>
+                  <div style={{ color: "#4b5563" }}>
+                    {appointment.doctor_name ?? "Any doctor"} &middot; {appointment.room_name ?? "Room TBD"}
+                  </div>
+                  <div>
+                    <span className="badge">{appointment.status}</span>
+                    {appointment.reason ? <span style={{ marginLeft: "0.5rem" }}>{appointment.reason}</span> : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+    </>
   );
 }
 

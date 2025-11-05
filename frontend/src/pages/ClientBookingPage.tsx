@@ -114,121 +114,110 @@ function ClientBookingPage() {
   });
 
   return (
-    <div className="main-layout">
-      <aside className="sidebar">
-        <h2>Client Hub</h2>
-        <a href="/client/booking">Book appointment</a>
-        <a href="/client/history">Visit history</a>
-        <a href="/clinic/login">Clinic sign-in</a>
-        <button className="secondary" style={{ marginTop: "2rem" }} onClick={logout}>
-          Sign out
-        </button>
-      </aside>
-      <main className="content">
-        <div className="card">
-          <h1>Find the perfect time for {profile?.full_name ?? "your pet"}</h1>
-          <p style={{ color: "#4b5563" }}>
-            Tell us what you need and Inter-Paws will curate recommended appointment windows across your clinic.
-          </p>
-          {errorMessage ? (
-            <div className="alert error" role="alert">
-              {errorMessage}
-            </div>
-          ) : null}
-          {successMessage ? (
-            <div className="alert success" role="status">
-              {successMessage}
-            </div>
-          ) : null}
-          <form
-            className="form-grid two-column"
-            onSubmit={form.handleSubmit(async (values) => {
-              setErrorMessage(null);
-              setSuccessMessage(null);
-              await findSlots.mutateAsync(values);
-            })}
-          >
-            <label>
-              <span>Clinic ID</span>
-              <input type="number" {...form.register("clinic_id", { valueAsNumber: true, required: true })} />
-            </label>
-            <label>
-              <span>Pet name</span>
-              <input type="text" {...form.register("pet_name", { required: true })} placeholder="Luna" />
-            </label>
-            <label>
-              <span>Reason for visit</span>
-              <input type="text" {...form.register("reason_for_visit", { required: true })} placeholder="Annual vaccines" />
-            </label>
-            <label>
-              <span>Urgency</span>
-              <select {...form.register("urgency")}> 
-                <option value="routine">Routine</option>
-                <option value="urgent">Urgent</option>
-                <option value="follow-up">Follow-up</option>
-              </select>
-            </label>
-            <label>
-              <span>Search start (ISO)</span>
-              <input type="datetime-local" {...form.register("start", { required: true })} />
-            </label>
-            <label>
-              <span>Search end (ISO)</span>
-              <input type="datetime-local" {...form.register("end", { required: true })} />
-            </label>
-            <label>
-              <span>Duration (minutes)</span>
-              <input type="number" {...form.register("duration_minutes", { valueAsNumber: true, required: true })} />
-            </label>
-            <div style={{ alignSelf: "flex-end" }}>
-              <button className="primary" type="submit" disabled={findSlots.isPending}>
-                {findSlots.isPending ? "Analyzing availability..." : "Search suggestions"}
-              </button>
-            </div>
-          </form>
+    <>
+    <div className="card">
+      <h1>Find the perfect time for {profile?.full_name ?? "your pet"}</h1>
+      <p style={{ color: "#4b5563" }}>
+        Tell us what you need and Inter-Paws will curate recommended appointment windows across your clinic.
+      </p>
+      {errorMessage ? (
+        <div className="alert error" role="alert">
+          {errorMessage}
         </div>
-        {suggestions.length > 0 ? (
-          <div className="card">
-            <div className="stack horizontal" style={{ justifyContent: "space-between" }}>
-              <div>
-                <h2>Recommended slots</h2>
-                <p style={{ color: "#4b5563", margin: 0 }}>
-                  Choose the time that works best. Each suggestion includes context from our scheduling assistant.
-                </p>
-              </div>
-              <button className="primary" onClick={() => book.mutateAsync()} disabled={!selectedSuggestion || book.isPending}>
-                {book.isPending ? "Booking..." : "Book selected slot"}
-              </button>
-            </div>
-            <div className="schedule-grid" style={{ marginTop: "1.5rem" }}>
-              {suggestions.map((slot) => {
-                const isSelected = selectedSuggestion?.start_time === slot.start_time;
-                return (
-                  <button
-                    key={`${slot.start_time}-${slot.rank}`}
-                    type="button"
-                    className="schedule-card"
-                    onClick={() => setSelectedSuggestion(slot)}
-                    style={{
-                      borderColor: isSelected ? "#2563eb" : undefined,
-                      boxShadow: isSelected ? "0 0 0 2px rgba(37, 99, 235, 0.35)" : undefined,
-                      textAlign: "left",
-                    }}
-                  >
-                    <div className="badge">Rank {slot.rank}</div>
-                    <h3 style={{ marginBottom: "0.5rem" }}>{new Date(slot.start_time).toLocaleString()}</h3>
-                    <p style={{ color: "#4b5563", marginTop: 0 }}>
-                      Ends at {new Date(slot.end_time).toLocaleTimeString()} &middot; Score {slot.score?.toFixed(2) ?? "N/A"}
-                    </p>
-                    <p style={{ marginTop: "0.75rem", color: "#1f2937" }}>{slot.rationale}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-      </main>
+      ) : null}
+      {successMessage ? (
+        <div className="alert success" role="status">
+          {successMessage}
+        </div>
+      ) : null}
+      <form
+        className="form-grid two-column"
+        onSubmit={form.handleSubmit(async (values) => {
+          setErrorMessage(null);
+          setSuccessMessage(null);
+          await findSlots.mutateAsync(values);
+        })}
+      >
+        <label>
+          <span>Clinic ID</span>
+          <input type="number" {...form.register("clinic_id", { valueAsNumber: true, required: true })} />
+        </label>
+        <label>
+          <span>Pet name</span>
+          <input type="text" {...form.register("pet_name", { required: true })} placeholder="Luna" />
+        </label>
+        <label>
+          <span>Reason for visit</span>
+          <input type="text" {...form.register("reason_for_visit", { required: true })} placeholder="Annual vaccines" />
+        </label>
+        <label>
+          <span>Urgency</span>
+          <select {...form.register("urgency")}> 
+            <option value="routine">Routine</option>
+            <option value="urgent">Urgent</option>
+            <option value="follow-up">Follow-up</option>
+          </select>
+        </label>
+        <label>
+          <span>Search start (ISO)</span>
+          <input type="datetime-local" {...form.register("start", { required: true })} />
+        </label>
+        <label>
+          <span>Search end (ISO)</span>
+          <input type="datetime-local" {...form.register("end", { required: true })} />
+        </label>
+        <label>
+          <span>Duration (minutes)</span>
+          <input type="number" {...form.register("duration_minutes", { valueAsNumber: true, required: true })} />
+        </label>
+        <div style={{ alignSelf: "flex-end" }}>
+          <button className="primary" type="submit" disabled={findSlots.isPending}>
+            {findSlots.isPending ? "Analyzing availability..." : "Search suggestions"}
+          </button>
+        </div>
+      </form>
     </div>
+    {suggestions.length > 0 ? (
+      <div className="card">
+        <div className="stack horizontal" style={{ justifyContent: "space-between" }}>
+          <div>
+            <h2>Recommended slots</h2>
+            <p style={{ color: "#4b5563", margin: 0 }}>
+              Choose the time that works best. Each suggestion includes context from our scheduling assistant.
+            </p>
+          </div>
+          <button className="primary" onClick={() => book.mutateAsync()} disabled={!selectedSuggestion || book.isPending}>
+            {book.isPending ? "Booking..." : "Book selected slot"}
+          </button>
+        </div>
+        <div className="schedule-grid" style={{ marginTop: "1.5rem" }}>
+          {suggestions.map((slot) => {
+            const isSelected = selectedSuggestion?.start_time === slot.start_time;
+            return (
+              <button
+                key={`${slot.start_time}-${slot.rank}`}
+                type="button"
+                className="schedule-card"
+                onClick={() => setSelectedSuggestion(slot)}
+                style={{
+                  borderColor: isSelected ? "#2563eb" : undefined,
+                  boxShadow: isSelected ? "0 0 0 2px rgba(37, 99, 235, 0.35)" : undefined,
+                  textAlign: "left",
+                }}
+              >
+                <div className="badge">Rank {slot.rank}</div>
+                <h3 style={{ marginBottom: "0.5rem" }}>{new Date(slot.start_time).toLocaleString()}</h3>
+                <p style={{ color: "#4b5563", marginTop: 0 }}>
+                  Ends at {new Date(slot.end_time).toLocaleTimeString()} &middot; Score {slot.score?.toFixed(2) ?? "N/A"}
+                </p>
+                <p style={{ marginTop: "0.75rem", color: "#1f2937" }}>{slot.rationale}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }
 
