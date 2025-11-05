@@ -29,26 +29,20 @@ export function App() {
         <BrowserRouter>
           <Routes>
             {/* === Client Routes === */}
-            <Route path="/" element={<ClientLayout />}>
-              <Route index element={<Navigate to="/client/login" replace />} />
-              <Route path="client/login" element={<ClientLoginPage />} />
-              <Route path="client/register" element={<ClientRegisterPage />} />
-              <Route
-                path="client/booking"
-                element={
-                  <ProtectedRoute fallback="/client/login">
-                    <ClientBookingPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="client/history"
-                element={
-                  <ProtectedRoute fallback="/client/login">
-                    <ClientHistoryPage />
-                  </ProtectedRoute>
-                }
-              />
+            <Route path="/" element={<Navigate to="/client/login" replace />} />
+            <Route path="/client/login" element={<ClientLoginPage />} />
+            <Route path="/client/register" element={<ClientRegisterPage />} />
+            <Route
+              path="/client"
+              element={
+                <ProtectedRoute fallback="/client/login">
+                  <ClientLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="booking" replace />} />
+              <Route path="booking" element={<ClientBookingPage />} />
+              <Route path="history" element={<ClientHistoryPage />} />
             </Route>
 
             {/* === Clinic Routes === */}

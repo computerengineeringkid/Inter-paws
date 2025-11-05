@@ -15,13 +15,23 @@ interface ClientLoginPageProps {
 const headings = {
   client: {
     title: "Sign in to book care",
-    subtitle: "Access recommendations, manage pets, and track visits.",
+    subtitle: "Pick the best appointment, see your pet's history, and get smart follow-ups tailored to your clinic.",
     registerPath: "/client/register",
+    bullets: [
+      "Instantly compare the best appointment matches for your pet",
+      "Syncs with clinic teams for real-time availability",
+      "Track visits, prescriptions, and follow-up reminders",
+    ],
   },
   clinic: {
     title: "Clinic staff sign in",
-    subtitle: "Manage your team, rooms, and live schedule.",
+    subtitle: "Coordinate doctors, rooms, and priorities—all optimized by Inter-Paws.",
     registerPath: "/client/register",
+    bullets: [
+      "One view of today's schedule, rooms, and cases",
+      "AI triage helps staff focus on urgent visits first",
+      "Invite new team members in a few clicks",
+    ],
   },
 };
 
@@ -61,33 +71,78 @@ export function ClientLoginPage({ mode = "client" }: ClientLoginPageProps) {
   });
 
   return (
-    <div className="main-layout" style={{ alignItems: "stretch" }}>
-      <div className="content" style={{ maxWidth: 420, margin: "0 auto" }}>
-        <div className="card" style={{ marginTop: "10vh" }}>
+    <div className="app-shell">
+      <div className="auth-page">
+        <section className="auth-hero">
+          <span className="auth-hero-badge">Inter-Paws smart scheduling</span>
           <h1>{heading.title}</h1>
-          <p style={{ color: "#4b5563", marginTop: "0.5rem" }}>{heading.subtitle}</p>
+          <p>{heading.subtitle}</p>
+          <ul>
+            {heading.bullets.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="auth-card">
+          <header>
+            <h2>Welcome back</h2>
+            <p>Sign in with your registered email to continue.</p>
+          </header>
+
           {error ? (
             <div className="alert error" role="alert">
               {error}
             </div>
           ) : null}
-          <form className="stack" onSubmit={onSubmit}>
-            <label>
-              <span>Email</span>
-              <input type="email" {...formRegister("email", { required: true })} placeholder="you@example.com" />
-            </label>
-            <label>
-              <span>Password</span>
-              <input type="password" {...formRegister("password", { required: true })} placeholder="••••••" />
-            </label>
-            <button className="primary" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in..." : "Sign in"}
-            </button>
-          </form>
-          <p style={{ marginTop: "1.5rem", color: "#4b5563" }}>
-            New here? <Link to={heading.registerPath}>Create an account</Link>
-          </p>
-        </div>
+
+          <div className="form-surface">
+            <form className="stack" onSubmit={onSubmit}>
+              <label>
+                <span>Email</span>
+                <div className="input-affordance">
+                  <span className="input-icon" aria-hidden>✉️</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    {...formRegister("email", { required: true })}
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </label>
+
+              <label>
+                <span>Password</span>
+                <div className="input-affordance">
+                  <span className="input-icon" aria-hidden>🔒</span>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    {...formRegister("password", { required: true })}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </label>
+
+              <div className="login-meta">
+                <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+                  <input type="checkbox" defaultChecked aria-label="Stay signed in" />
+                  <span>Stay signed in</span>
+                </label>
+                <a href="mailto:support@interpaws.com">Need help?</a>
+              </div>
+
+              <button className="primary" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Signing in..." : "Sign in"}
+              </button>
+            </form>
+          </div>
+
+          <div className="auth-footer">
+            <span>New here? </span>
+            <Link to={heading.registerPath}>Create an account</Link>
+          </div>
+        </section>
       </div>
     </div>
   );
